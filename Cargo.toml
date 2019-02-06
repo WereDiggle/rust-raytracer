@@ -1,0 +1,8 @@
+[package]
+name = "raytracer"
+version = "0.1.0"
+authors = ["WereDiggle <archdiggle@gmail.com>"]
+
+[dependencies]
+image = "0.21.0"
+euler = "0.4.0"
