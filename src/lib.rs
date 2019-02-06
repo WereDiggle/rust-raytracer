@@ -9,7 +9,7 @@ pub mod primitive;
 pub mod light;
 pub mod multithread;
 
-use std::sync::{Mutex, Arc, mpsc};
+use std::sync::{mpsc};
 use image::{RgbImage, Rgb, ImageBuffer};
 use euler::*;
 pub use color::*;
@@ -45,7 +45,7 @@ pub fn render(scene: Scene,
     }
 
     let aspect_ratio = image_dimension.width as f64 / image_dimension.height as f64;
-    let fov_factor = (aspect_ratio.to_radians()/2.0).tan();
+    let fov_factor = (camera_config.fov_y.to_radians()/2.0).tan();
     let x_factor = aspect_ratio * fov_factor;
 
     let view_direction = (camera_config.target - camera_config.origin).normalize();
