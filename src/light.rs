@@ -1,7 +1,7 @@
 use euler::DVec3;
 use color::Color;
 
-const AMBIENT_PORTION : f64 = 0.1;
+const AMBIENT_PORTION : f64 = 0.01;
 
 #[derive(Clone)]
 pub struct AmbientLight {
@@ -10,13 +10,8 @@ pub struct AmbientLight {
 }
 
 impl AmbientLight {
-    pub fn new() -> AmbientLight {
-        AmbientLight{color: Color::BLACK, power: 0.0}
-    }
-
-    pub fn add_light_source(&mut self, light: &PointLight) {
-        self.color = (self.color*self.power + light.color*light.power*AMBIENT_PORTION).normalize();
-        self.power += light.power*AMBIENT_PORTION;
+    pub fn new(color: Color, power: f64) -> AmbientLight {
+        AmbientLight{color, power}
     }
 
     pub fn color_intensity(&self) -> Color {

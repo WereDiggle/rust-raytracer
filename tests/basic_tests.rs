@@ -1,19 +1,18 @@
 extern crate raytracer;
 extern crate euler;
 
+mod common;
+
+use common::*;
 use raytracer::*;
 use raytracer::matrix::*;
 use euler::*;
 
 fn setup_scene() -> Scene {
     let mut test_scene = Scene::new();
-    test_scene.root.set_primitive(Box::new(Sphere::new(1.0)));
+    test_scene.root.set_primitive(Box::new(Sphere::new(100.0)));
     test_scene.add_light(PointLight::new(dvec3!(0.0, 1000.0, 200.0), Color::new(0.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
     test_scene
-}
-
-fn square_image(side: u32) -> ImageDimension {
-    ImageDimension{width: side, height: side}
 }
 
 fn setup_camera() -> CameraConfig {
@@ -57,7 +56,7 @@ fn plane_test_1() {
     let mut test_scene = setup_scene();
     let test_material = PhongShader::new(Color::WHITE*0.1, Color::WHITE*0.9, Color::WHITE*0.1, 4.0);
     test_scene.root.set_material(Box::new(test_material));
-    test_scene.root.set_primitive(Box::new(RectangularPlane::new(1.0, 1.0)));
+    test_scene.root.set_primitive(Box::new(RectangularPlane::new(100.0, 100.0)));
     test_scene.add_light(PointLight::new(dvec3!(0.0, 0.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
     let camera_config = CameraConfig{ origin: dvec3!(50.0, 50.0, 200.0),
                                       target: dvec3!(0.0, 0.0, 0.0),
@@ -72,13 +71,9 @@ fn setup_diffuse_cube(transform: DMat4) -> Scene {
     let material = PhongShader::new(Color::WHITE*0.9, Color::WHITE*0.0, Color::WHITE*0.1, 4.0);
     scene.root.set_transform(transform);
     scene.root.set_material(Box::new(material));
-    scene.root.set_primitive(Box::new(Cube::new(1.0)));
+    scene.root.set_primitive(Box::new(Cube::new(100.0)));
     scene.add_light(PointLight::new(dvec3!(200.0, 300.0, 400.0), Color::new(1.0, 1.0, 1.0), 2.0, (1.0, 0.0, 0.0)));
     scene
-}
-
-fn camera(origin: [f64; 3], target: [f64; 3]) -> CameraConfig {
-    CameraConfig { origin: dvec3!(origin), target: dvec3!(target), up: dvec3!(0.0, 1.0, 0.0), fov_y: 90.0}
 }
 
 #[test]
@@ -121,7 +116,7 @@ fn setup_multiple_cubes_same_transform(num_cubes: u32, transform: DMat4) -> Scen
     let material = PhongShader::new(Color::WHITE*0.9, Color::WHITE*0.0, Color::WHITE*0.1, 4.0);
     base_node.set_transform(transform);
     base_node.set_material(Box::new(material));
-    base_node.set_primitive(Box::new(Cube::new(1.0)));
+    base_node.set_primitive(Box::new(Cube::new(50.0)));
 
     let mut prev_node;
     let mut scene_node = base_node.clone();
@@ -136,8 +131,8 @@ fn setup_multiple_cubes_same_transform(num_cubes: u32, transform: DMat4) -> Scen
 
 #[test]
 fn child_transform_test_1() {
-    let test_scene = setup_multiple_cubes_same_transform(5, translation(0.5, 0.0, 0.0)*rotation(Axis::Z, 15.0));
-    let camera_config = camera([50.0, 50.0, 200.0], [0.0; 3]);
+    let test_scene = setup_multiple_cubes_same_transform(5, rotation(Axis::Z, 15.0) * translation(50.0, 0.0, 0.0));
+    let camera_config = camera([0.0, 0.0, 200.0], [0.0; 3]);
     let image = render(test_scene, square_image(512), camera_config);
     write_to_png( image, "output/child_transform_1");
 }
@@ -148,11 +143,11 @@ fn shadow_test_1() {
     let test_material = PhongShader::new(Color::WHITE*0.1, Color::WHITE*0.9, Color::WHITE*0.1, 4.0);
     test_scene.add_light(PointLight::new(dvec3!(200.0, 200.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
     test_scene.root.set_material(Box::new(test_material));
-    test_scene.root.set_transform(translation(-1.0, -1.0, -1.0));
+    test_scene.root.set_transform(translation(-100.0, -100.0, -100.0));
 
     let mut small_sphere = SceneNode::new();
-    small_sphere.set_primitive(Box::new(Sphere::new(0.5)));
-    small_sphere.set_transform(translation(1.0, 1.0, 1.0));
+    small_sphere.set_primitive(Box::new(Sphere::new(50.0)));
+    small_sphere.set_transform(translation(100.0, 100.0, 100.0));
     test_scene.root.add_child(Box::new(small_sphere));
 
     let image = render(test_scene, square_image(512), setup_camera());

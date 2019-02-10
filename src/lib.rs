@@ -35,6 +35,8 @@ pub struct CameraConfig {
 }
 
 const NUM_THREADS: usize = 8;
+const RECURSION_DEPTH: u32 = 20;
+
 pub fn render(scene: Scene,
               image_dimension: ImageDimension,
               camera_config: CameraConfig) -> RgbImage {
@@ -73,7 +75,7 @@ pub fn render(scene: Scene,
                                             1, 
                                             1);
                 
-                let prime_ray = Ray::new_destination(camera_config.origin, pixel_location.xyz());
+                let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), RECURSION_DEPTH);
 
                 let color = thread_scene.cast_ray(prime_ray);
 

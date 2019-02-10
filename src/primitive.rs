@@ -1,5 +1,63 @@
-use euler::{dvec3, DVec3, dmat4, DMat4};
+use euler::{dvec3, DVec3, DMat4};
 use geometry::{Intersectable, Ray, matrix::*};
+
+#[derive(Clone)]
+pub struct OneWay {
+    primitive: Box<Intersectable + Send + Sync>,
+}
+
+impl OneWay {
+    pub fn new(primitive: Box<Intersectable + Send + Sync>) -> OneWay {
+        OneWay {
+            primitive,
+        }
+    }
+}
+
+impl Intersectable for OneWay {
+    fn check_intersect(&self, ray: Ray) -> Option<f64> {
+        if let Some(distance) = self.primitive.check_intersect(ray) {
+            let surface_normal = self.primitive.surface_normal(ray.point_at_distance(distance));
+            if ray.direction.dot(surface_normal) < 0.0 {
+                return Some(distance);
+            }
+        }
+        None
+    }
+
+    fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
+        self.primitive.surface_normal(hit_point)
+    }
+}
+
+#[derive(Clone)]
+pub struct Inverted {
+    primitive: Box<Intersectable + Send + Sync>,
+}
+
+impl Inverted {
+    pub fn new(primitive: Box<Intersectable + Send + Sync>) -> Inverted {
+        Inverted {
+            primitive,
+        }
+    }
+}
+
+impl Intersectable for Inverted {
+    fn check_intersect(&self, ray: Ray) -> Option<f64> {
+        if let Some(distance) = self.primitive.check_intersect(ray) {
+            let surface_normal = self.primitive.surface_normal(ray.point_at_distance(distance));
+            if ray.direction.dot(surface_normal) >= 0.0 {
+                return Some(distance);
+            }
+        }
+        None
+    }
+
+    fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
+        self.primitive.surface_normal(hit_point) * -1.0
+    }
+}
 
 #[derive(Clone)]
 pub struct Sphere {
@@ -56,11 +114,6 @@ impl RectangularPlane {
 
 impl Intersectable for RectangularPlane {
     fn check_intersect(&self, ray: Ray) -> Option<f64> {
-        // This is a one way plane
-        if ray.direction.z > 0.0 || ray.origin.z < 0.0 {
-            return None;
-        }
-
         // Get point on the plane
         let normal = dvec3!(0.0, 0.0, 1.0);
         let hit_distance = ray.origin.dot(normal) / ray.direction.dot(normal) * -1.0;
@@ -82,7 +135,7 @@ impl Intersectable for RectangularPlane {
         }
     }
 
-    fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
+    fn surface_normal(&self, _: DVec3) -> DVec3 {
         dvec3!(0.0, 0.0, 1.0)
     }
 }
@@ -118,7 +171,6 @@ impl Cube {
 
 impl Intersectable for Cube {
     fn check_intersect(&self, ray: Ray) -> Option<f64> {
-        // This is a one way plane
         for i in 0..6 {
             let transformed_ray = ray.transform(self.inverse_matrices[i]);
             if let Some(distance) = self.base_plane.check_intersect(transformed_ray) {

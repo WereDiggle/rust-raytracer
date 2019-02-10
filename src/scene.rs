@@ -13,19 +13,20 @@ pub struct Scene {
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene{ root: SceneNode::new(), lights: Vec::new(), ambient_light: AmbientLight::new()}
+        Scene{ root: SceneNode::new(), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0)}
     }
 
     pub fn cast_ray(&self, ray: Ray) -> Color {
-        let intersect = self.root.trace(ray);
-        if let Some(intersect) = intersect {
-            return intersect.node.material.get_color(self, ray, intersect.hit_point, intersect.surface_normal);
+        if ray.depth > 0 {
+            let intersect = self.root.trace(ray);
+            if let Some(intersect) = intersect {
+                return intersect.node.material.get_color(self, ray, intersect.hit_point, intersect.surface_normal);
+            }
         }
         Color::new(0.0, 0.0, 0.0)
     }
 
     pub fn add_light(&mut self, light: PointLight) {
-        self.ambient_light.add_light_source(&light);
         self.lights.push(light);
     }
 }
@@ -35,6 +36,11 @@ pub trait Transformable: TransformableClone {
     fn get_transform(&self) -> DMat4;
     fn get_inverse_transform(&self) -> DMat4;
     fn add_child(&mut self, child: Box<Transformable + Send + Sync>);
+    fn add_children(&mut self, children: Vec<Box<Transformable + Send + Sync>>) {
+        for child in children {
+            self.add_child(child);
+        }
+    }
     fn trace(&self, ray: Ray) -> Option<Intersect>;
     fn partial_trace(&self, ray: Ray, max_distance: f64) -> Option<Intersect>;
 }

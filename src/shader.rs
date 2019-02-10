@@ -52,10 +52,12 @@ impl Shadable for PhongShader {
                 continue;
             }
 
-            let light_ray = Ray::new(hit_point, light_direction);
+            let shadow_ray = Ray::new(hit_point, light_direction, 1);
             let light_distance = (light.position - hit_point).length();
 
-            if let Some(_) = scene.root.partial_trace(light_ray, light_distance) {
+            let light_through = 1.0;
+            if let Some(intersect) = scene.root.partial_trace(shadow_ray, light_distance) {
+                // TODO: fix
                 continue;
             }
 
@@ -63,9 +65,46 @@ impl Shadable for PhongShader {
             let specular_factor = reflection_direction.dot(-1.0*ray.direction).max(0.0).powf(self.shininess) / light_surface_dot;
             let phong_color = self.specular * specular_factor + self.diffuse;
             let falloff_factor = light_surface_dot / (light.falloff.0 + light.falloff.1*light_distance + light.falloff.2*light_distance*light_distance);
-            total_color += phong_color * light.color_intensity() * falloff_factor;
+            total_color += phong_color * light.color_intensity() * light_through * falloff_factor;
         }
 
         total_color
+    }
+}
+
+#[derive(Clone)]
+pub struct ReflectionShader {
+    reflectivity: Color,
+}
+
+impl ReflectionShader {
+    pub fn new(reflectivity: Color) -> ReflectionShader {
+        ReflectionShader{reflectivity}
+    }
+}
+
+impl Shadable for ReflectionShader {
+    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
+        let reflected_ray = ray.reflect_off(hit_point, surface_normal);
+        self.reflectivity * scene.cast_ray(reflected_ray)
+    }
+}
+
+#[derive(Clone)]
+pub struct TranslucentShader {
+    translucency: Color,
+    refractive_index: f64,
+}
+
+impl TranslucentShader {
+    pub fn new(translucency: Color, refractive_index: f64) -> TranslucentShader {
+        TranslucentShader{translucency, refractive_index}
+    }
+}
+
+impl Shadable for TranslucentShader {
+    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
+        let reflected_ray = ray.reflect_off(hit_point, surface_normal);
+        self.translucency * scene.cast_ray(reflected_ray)
     }
 }
