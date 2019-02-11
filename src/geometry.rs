@@ -1,5 +1,7 @@
 use euler::{dmat4, DMat4, DVec3, dvec4};
 use scene::SceneNode;
+use shader::Shadable;
+use snowflake::ProcessUniqueId;
 
 pub mod matrix {
     use super::*;
@@ -107,11 +109,12 @@ impl Ray {
         assert!(self.depth > 0);
 
         let mut incident_cos = self.direction.dot(surface_normal);
+        let mut refractive_index = refractive_index;
 
         let mut normal_sign = -1.0;
         if incident_cos < 0.0 {
             incident_cos = -incident_cos;
-            let refractive_index = -refractive_index;
+            refractive_index = 1.0/refractive_index;
             normal_sign = 1.0; 
         }
 
@@ -145,7 +148,8 @@ impl Ray {
 
 #[derive(Clone, Copy)]
 pub struct Intersect<'a> {
-    pub node: &'a SceneNode,
+    pub hit_id: ProcessUniqueId,
+    pub shader: &'a (Shadable + Send + Sync + 'a),
     pub ray: Ray,
     pub distance: f64, 
     pub hit_point: DVec3,
@@ -153,17 +157,18 @@ pub struct Intersect<'a> {
 }
 
 impl<'a> Intersect<'a> {
-    pub fn new(node: &'a SceneNode, ray: Ray, distance: f64, hit_point: DVec3, surface_normal: DVec3) -> Intersect<'a> {
-        Intersect {node, ray, distance, hit_point, surface_normal}
+    pub fn new(hit_id: ProcessUniqueId, shader: &'a (Shadable + Send + Sync + 'a), ray: Ray, distance: f64, hit_point: DVec3, surface_normal: DVec3) -> Intersect<'a> {
+        Intersect {hit_id, shader, ray, distance, hit_point, surface_normal}
     }
 
-    pub fn transform(&mut self, matrix: DMat4) -> Intersect<'a> {
+    pub fn transform(&self, matrix: DMat4) -> Intersect<'a> {
         let ray = self.ray.transform(matrix);
         let hit_point = matrix::transform_point(matrix, self.hit_point);
         let distance = (hit_point - ray.origin).length();
         let surface_normal = matrix::transform_normal(matrix, self.surface_normal);
         Intersect {
-            node: self.node,
+            hit_id: self.hit_id,
+            shader: self.shader,
             ray,
             distance,
             hit_point,

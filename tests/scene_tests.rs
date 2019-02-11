@@ -77,10 +77,10 @@ fn create_cube(size: f64, transform: DMat4, color: Color) -> SceneNode {
     sphere
 }
 
-fn create_translucent_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
+fn create_translucent_sphere(size: f64, transform: DMat4, color: Color, refractive_index: f64) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
-    sphere.set_material(Box::new(TranslucentShader::new(color*1.0, 1.52)));
+    sphere.set_material(Box::new(TranslucentShader::new(color*1.0, refractive_index)));
     sphere.set_transform(transform);
     sphere
 }
@@ -146,11 +146,43 @@ fn scene_test_4() {
     test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
-    let sphere = create_translucent_sphere(50.0, translation(0.0, -50.0, 0.0), Color::WHITE);
+    let sphere = create_translucent_sphere(50.0, translation(0.0, -50.0, 0.0), Color::WHITE, 1.52);
     test_scene.root.add_child(Box::new(sphere));
 
     let image = render(test_scene, image(1280, 720), camera([0.0, 0.0, room_size/2.0], [0.0, -(room_size/2.0)*0.6, 0.0]));
     write_to_png( image, "output/scene_4");
+}
+
+#[test]
+fn scene_test_5() {
+    let mut test_scene = Scene::new();
+    let room_size = 200.0;
+    test_scene.root = create_interior_box(room_size);
+    test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
+
+    let sphere = create_cube(50.0, translation(0.0, -75.0, 0.0), Color::WHITE);
+    test_scene.root.add_child(Box::new(sphere));
+
+    let image = render(test_scene, image(1280, 720), camera([0.0, 0.0, room_size/2.0], [0.0, -(room_size/2.0)*0.6, 0.0]));
+    write_to_png( image, "output/scene_5");
+}
+
+#[test]
+fn refraction_test() {
+    for i in 0..11 {
+        let mut test_scene = Scene::new();
+        let room_size = 200.0;
+        test_scene.root = create_interior_box(room_size);
+        test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+        test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
+
+        let sphere = create_translucent_sphere(25.0, translation(0.0, -50.0, 50.0), Color::WHITE, 1.0 + i as f64 * 0.3);
+        test_scene.root.add_child(Box::new(sphere));
+
+        let image = render(test_scene, image(512, 512), camera([0.0, -50.0, room_size/2.0], [0.0, -50.0, 0.0]));
+        write_to_png( image, &format!("output/refraction/refraction_{:02}", i));
+    }
 }
 
 #[test]

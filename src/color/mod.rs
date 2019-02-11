@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul};
 use image::{Rgb};
 
 mod consts;
@@ -21,11 +21,13 @@ pub struct Color {
 }
 
 impl Color {
-
     pub fn new(red: f64, green: f64, blue: f64) -> Color {
         Color {red, green, blue}
     } 
 
+    pub fn or_greater(&self, other: Color) -> bool {
+        self.red > other.red || self.blue > other.blue || self.green > other.green
+    }
 
     pub fn clamp(&self) -> Color {
         Color {
@@ -111,6 +113,28 @@ impl AddAssign for Color {
             red: self.red + other.red,
             blue: self.blue + other.blue,
             green: self.green + other.green,
+        }
+    }
+}
+
+impl Sub for Color {
+    type Output = Color;
+
+    fn sub(self, other: Color) -> Color {
+        Color {
+            red: self.red - other.red,
+            blue: self.blue - other.blue,
+            green: self.green - other.green,
+        }
+    }
+}
+
+impl SubAssign for Color {
+    fn sub_assign(&mut self, other: Color) {
+        *self = Color {
+            red: self.red - other.red,
+            blue: self.blue - other.blue,
+            green: self.green - other.green,
         }
     }
 }

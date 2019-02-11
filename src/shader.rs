@@ -3,9 +3,15 @@ use scene::Transformable;
 use color::Color;
 use euler::DVec3;
 use geometry::Ray;
+use std::collections::HashMap;
+use snowflake::ProcessUniqueId;
 
 pub trait Shadable: ShadableClone {
     fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color;
+
+    fn get_transparency(&self) -> Color {
+        Color::BLACK
+    }
 }
 
 pub trait ShadableClone {
@@ -41,6 +47,18 @@ impl PhongShader {
     }
 }
 
+#[derive(PartialEq, Copy, Clone)]
+enum Hit {
+    Enter,
+    Exit,
+}
+
+fn total_light_blocked(transparency: Color, enter: f64, exit: f64) -> Color {
+    let total_distance = exit - enter;
+    let total_blocked = (Color::WHITE - transparency) * total_distance;
+    total_blocked
+}
+
 impl Shadable for PhongShader {
     fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
         assert!(surface_normal.length() - 1.0 < 0.000001);
@@ -55,11 +73,64 @@ impl Shadable for PhongShader {
             let shadow_ray = Ray::new(hit_point, light_direction, 1);
             let light_distance = (light.position - hit_point).length();
 
-            let light_through = 1.0;
-            if let Some(intersect) = scene.root.partial_trace(shadow_ray, light_distance) {
-                // TODO: fix
-                continue;
+            let mut light_through = Color::WHITE;
+            let mut shadow_intersects = scene.root.total_trace_until_distance(shadow_ray, light_distance);
+            shadow_intersects.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
+
+            let mut shadow_map: HashMap<ProcessUniqueId, (Color, Vec<(Hit, f64)>) > = HashMap::new();
+
+            // TODO: figure out how much light through should be given shadow_intersects
+            for shadow_intersect in shadow_intersects {
+                shadow_map.entry(shadow_intersect.hit_id).or_insert((shadow_intersect.shader.get_transparency(), Vec::new()));
+                if let Some((_, vec)) = shadow_map.get_mut(&shadow_intersect.hit_id) {
+                    let dot = shadow_intersect.surface_normal.dot(shadow_intersect.ray.direction);
+                    let (hit_type, mut last_hit_type) = if dot < 0.0 {(Hit::Enter, Hit::Exit)} else {(Hit::Exit, Hit::Enter)}; 
+                    // TODO: make sure hit_type is alternating
+                    if let Some(prev) = vec.last() {
+                        last_hit_type = prev.0;
+                    }
+
+                    if hit_type != last_hit_type {
+                        vec.push((hit_type, shadow_intersect.distance)); 
+                    }
+                }
             }
+
+            // TODO: this whole block is probably wrong
+            for (_, (transparency, vec)) in shadow_map {
+                assert!(vec.len() > 0);
+                let mut vec_iter = vec.iter();
+                while light_through.or_greater(Color::BLACK) {
+                    let mut enter_distance: f64 = 0.0;
+                    let mut exit_distance: f64 = light_distance;
+
+                    if let Some((hit_type, distance)) = vec_iter.next() {
+                        match hit_type {
+                            Hit::Enter => enter_distance = *distance,
+                            Hit::Exit => {
+                                exit_distance = *distance;
+                                light_through -= total_light_blocked(transparency, enter_distance, exit_distance);
+                                continue;
+                            },
+                        }
+                    }
+                    else {
+                        break;
+                    }
+
+                    // We only reach this far if last hit was a Hit::Enter
+                    if let Some((hit_type, distance)) = vec_iter.next() {
+                        match hit_type {
+                            Hit::Enter => panic!("Got a Hit::Enter after Hit::Enter"),
+                            Hit::Exit => {
+                                exit_distance = *distance;
+                            },
+                        }
+                    }
+                    light_through -= total_light_blocked(transparency, enter_distance, exit_distance);
+                }
+            }
+            light_through = light_through.clamp();
 
             let reflection_direction = (2.0*light_surface_dot*surface_normal - light_direction).normalize();
             let specular_factor = reflection_direction.dot(-1.0*ray.direction).max(0.0).powf(self.shininess) / light_surface_dot;
@@ -88,6 +159,7 @@ impl Shadable for ReflectionShader {
         let reflected_ray = ray.reflect_off(hit_point, surface_normal);
         self.reflectivity * scene.cast_ray(reflected_ray)
     }
+
 }
 
 #[derive(Clone)]
@@ -104,7 +176,18 @@ impl TranslucentShader {
 
 impl Shadable for TranslucentShader {
     fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
-        let reflected_ray = ray.reflect_off(hit_point, surface_normal);
-        self.translucency * scene.cast_ray(reflected_ray)
+        let transmitted_ray = ray.transmit_through(hit_point, surface_normal, self.refractive_index);
+        let (distance, color) = scene.cast_ray_get_distance(transmitted_ray);
+        let opacity = Color::WHITE - self.translucency;
+        if surface_normal.dot(transmitted_ray.direction) < 0.0 {
+            (Color::WHITE - (opacity * distance)).clamp() * color
+        }
+        else {
+            color
+        }
+    }
+
+    fn get_transparency(&self) -> Color {
+        self.translucency
     }
 }

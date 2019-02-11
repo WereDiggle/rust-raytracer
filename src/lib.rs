@@ -1,3 +1,4 @@
+extern crate snowflake;
 extern crate image;
 extern crate euler;
 

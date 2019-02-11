@@ -171,18 +171,26 @@ impl Cube {
 
 impl Intersectable for Cube {
     fn check_intersect(&self, ray: Ray) -> Option<f64> {
+        let mut final_distance: Option<f64> = None;
         for i in 0..6 {
             let transformed_ray = ray.transform(self.inverse_matrices[i]);
             if let Some(distance) = self.base_plane.check_intersect(transformed_ray) {
                 let mut hit_point = transformed_ray.point_at_distance(distance);
                 hit_point = transform_point(self.matrices[i], hit_point);
                 let hit_distance = (ray.origin - hit_point).length();
-                if hit_distance >= Ray::MIN_DISTANCE {
-                    return Some(hit_distance);
+                if let Some(final_dist) = final_distance {
+                    if hit_distance >= Ray::MIN_DISTANCE && hit_distance < final_dist {
+                        final_distance = Some(hit_distance);
+                    }
+                }
+                else {
+                    if hit_distance >= Ray::MIN_DISTANCE {
+                        final_distance = Some(hit_distance);
+                    }
                 }
             }
         }
-        None
+        final_distance
     }
 
     fn surface_normal(&self, hit_point: DVec3) -> DVec3 {

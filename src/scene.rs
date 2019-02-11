@@ -3,6 +3,7 @@ use color::Color;
 use light::{AmbientLight, PointLight};
 use geometry::{matrix, Intersect, Intersectable, Ray};
 use shader::{Shadable, PhongShader};
+use snowflake::ProcessUniqueId;
 
 #[derive(Clone)]
 pub struct Scene {
@@ -20,10 +21,20 @@ impl Scene {
         if ray.depth > 0 {
             let intersect = self.root.trace(ray);
             if let Some(intersect) = intersect {
-                return intersect.node.material.get_color(self, ray, intersect.hit_point, intersect.surface_normal);
+                return intersect.shader.get_color(self, ray, intersect.hit_point, intersect.surface_normal);
             }
         }
         Color::new(0.0, 0.0, 0.0)
+    }
+
+    pub fn cast_ray_get_distance(&self, ray: Ray) -> (f64, Color) {
+        if ray.depth > 0 {
+            let intersect = self.root.trace(ray);
+            if let Some(intersect) = intersect {
+                return (intersect.distance, intersect.shader.get_color(self, ray, intersect.hit_point, intersect.surface_normal));
+            }
+        }
+        (0.0, Color::new(0.0, 0.0, 0.0))
     }
 
     pub fn add_light(&mut self, light: PointLight) {
@@ -32,6 +43,7 @@ impl Scene {
 }
 
 pub trait Transformable: TransformableClone {
+    fn get_id(&self) -> ProcessUniqueId;
     fn set_transform(&mut self, trans: DMat4);
     fn get_transform(&self) -> DMat4;
     fn get_inverse_transform(&self) -> DMat4;
@@ -42,7 +54,8 @@ pub trait Transformable: TransformableClone {
         }
     }
     fn trace(&self, ray: Ray) -> Option<Intersect>;
-    fn partial_trace(&self, ray: Ray, max_distance: f64) -> Option<Intersect>;
+    fn partial_trace_until_distance(&self, ray: Ray, max_distance: f64) -> Option<Intersect>;
+    fn total_trace_until_distance(&self, ray: Ray, max_distance: f64) -> Vec<Intersect>;
 }
 
 pub trait TransformableClone {
@@ -66,6 +79,7 @@ impl Clone for Box<Transformable + Send + Sync> {
 
 #[derive(Clone)]
 pub struct SceneNode {
+    id: ProcessUniqueId,
     primitive: Option<Box<Intersectable + Send + Sync>>,
     material: Box<Shadable + Send + Sync>,
     trans: DMat4,
@@ -74,9 +88,11 @@ pub struct SceneNode {
 }
 
 impl SceneNode {
+    
     pub fn new() -> SceneNode {
         let default_shader = PhongShader::new(Color::WHITE*0.5, Color::WHITE*0.5, Color::WHITE*0.1, 1.0);
         SceneNode {
+            id: ProcessUniqueId::new(),
             primitive: None, 
             material: Box::new(default_shader),
             trans: DMat4::identity(), 
@@ -95,6 +111,10 @@ impl SceneNode {
 }
 
 impl Transformable for SceneNode {
+    fn get_id(&self) -> ProcessUniqueId {
+        self.id
+    }
+
     fn set_transform(&mut self, trans: DMat4) {
         self.trans = trans;
         self.inv_trans = trans.inverse();
@@ -120,7 +140,7 @@ impl Transformable for SceneNode {
             if let Some(distance) = primitive.check_intersect(ray) {
                 let hit_point = ray.point_at_distance(distance);
                 let surface_normal = primitive.surface_normal(hit_point);
-                final_intersect = Some(Intersect::new(&self, ray, distance, hit_point, surface_normal));
+                final_intersect = Some(Intersect::new(self.id, &(*self.material), ray, distance, hit_point, surface_normal));
             }
         }
 
@@ -137,7 +157,7 @@ impl Transformable for SceneNode {
             }
         }
 
-        if let Some(mut intersect) = final_intersect {
+        if let Some(intersect) = final_intersect {
             Some(intersect.transform(self.trans))
         }
         else {
@@ -145,7 +165,7 @@ impl Transformable for SceneNode {
         }
     }
 
-    fn partial_trace(&self, ray: Ray, max_distance: f64) -> Option<Intersect> {
+    fn partial_trace_until_distance(&self, ray: Ray, max_distance: f64) -> Option<Intersect> {
         let max_distance_point = matrix::transform_point(self.inv_trans, ray.point_at_distance(max_distance));
         let ray = ray.transform(self.inv_trans);
         let max_distance = (ray.origin - max_distance_point).length();
@@ -155,18 +175,43 @@ impl Transformable for SceneNode {
                 if distance <= max_distance {
                     let hit_point = ray.point_at_distance(distance);
                     let surface_normal = primitive.surface_normal(hit_point);
-                    return Some(Intersect::new(&self, ray, distance, hit_point, surface_normal).transform(self.trans));
+                    return Some(Intersect::new(self.id, &(*self.material), ray, distance, hit_point, surface_normal).transform(self.trans));
                 }
             }
         }
 
         for child in self.children.iter() {
-            if let Some(mut child_intersect) = child.partial_trace(ray, max_distance) {
+            if let Some(mut child_intersect) = child.partial_trace_until_distance(ray, max_distance) {
                 if child_intersect.distance < max_distance {
                     return Some(child_intersect.transform(self.trans));
                 }
             }
         }
         None
+    }
+
+    fn total_trace_until_distance(&self, ray: Ray, max_distance: f64) -> Vec<Intersect> {
+        let ray = ray.transform(self.inv_trans);
+        let max_distance_point = matrix::transform_point(self.inv_trans, ray.point_at_distance(max_distance));
+        let max_distance = (ray.origin - max_distance_point).length();
+
+        let mut all_intersects: Vec<Intersect> = Vec::new();
+        if let Some(ref primitive) = self.primitive {
+            if let Some(distance) = primitive.check_intersect(ray) {
+                if distance <= max_distance {
+                    let hit_point = ray.point_at_distance(distance);
+                    let surface_normal = primitive.surface_normal(hit_point);
+                    all_intersects.push(Intersect::new(self.id, &(*self.material), ray, distance, hit_point, surface_normal));
+                }
+            }
+        }
+
+        for child in self.children.iter() {
+            let child_intersects = child.total_trace_until_distance(ray, max_distance);
+            // TODO: merge sort
+            all_intersects.extend(child_intersects);
+        }
+        // transform all intersects in all_intersects
+        all_intersects.iter().map(|sect| sect.transform(self.trans)).collect()
     }
 }
