@@ -20,7 +20,10 @@ fn create_wall(size: f64, color: Color, transform: DMat4) -> SceneNode {
 fn create_floor(size: f64, color: Color) -> SceneNode {
     let mut floor = SceneNode::new();
     floor.set_primitive(Box::new(RectangularPlane::new(size, size)));
-    floor.set_material(Box::new(PhongShader::new(color*1.0, color*0.0, color*0.1, 1.0)));
+    let mut comp = CompositeShader::new();
+    comp.add_shader(0.8, Box::new(PhongShader::new(color*1.0, color*0.0, color*0.1, 1.0)));
+    comp.add_shader(0.2, Box::new(ReflectionShader::new(color*1.0)));
+    floor.set_material(Box::new(comp));
     floor.set_transform(rotation(Axis::X, -90.0));
     floor
 }
@@ -104,10 +107,11 @@ fn create_mirror_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode 
 fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
-    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
+    //let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
+    let glass = Box::new(TranslucentShader::new(Color::WHITE, 1.52));
     let reflect = Box::new(ReflectionShader::new(Color::WHITE));
     let mut comp = Box::new(CompositeShader::new());
-    comp.add_shader(0.8, phong);
+    comp.add_shader(0.8, glass);
     comp.add_shader(0.2, reflect);
     sphere.set_material(comp);
     sphere.set_transform(transform);
@@ -264,6 +268,6 @@ fn many_balls() {
     scene.ambient_light = AmbientLight::new(Color::WHITE, 0.0);
     scene.set_background_from_path("assets/images/backgrounds/forest2.jpg");
 
-    let image = render(scene, image(1920, 1080), camera([0.0, 200.0, 400.0], [0.0, 0.0, 0.0]));
+    let image = render(scene, image(1920, 1080), camera([0.0, 200.0, -400.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/many_balls");
 }

@@ -63,34 +63,41 @@ pub fn render(scene: Scene,
     );
 
     let thread_pool = ThreadPool::new(NUM_THREADS);
-    let (sender, receiver) = mpsc::channel::<(u32, u32, Rgb<u8>)>();
-
+    //let (sender, receiver) = mpsc::channel::<(u32, u32, Rgb<u8>)>();
+    let (sender, receiver) = mpsc::channel::<(u32, Vec<Rgb<u8>>)>();
 
     // TODO: divide tasks only into chunks instead of each individual ray getting a task
-    for y in 0..image_dimension.height {
-        for x in 0..image_dimension.width {
-            let thread_sender = sender.clone();
-            let thread_scene = scene.clone();
-            thread_pool.execute(move || {
-                let pixel_location = camera_to_world_mat *
-                                     dvec4!((2.0 * ((x as f64 + 0.5)/image_dimension.width as f64) - 1.0) * x_factor,
-                                            (1.0 - 2.0 * (y as f64 + 0.5)/image_dimension.height as f64) * fov_factor, 
-                                            1, 
-                                            1);
-                
-                let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), RECURSION_DEPTH);
+    let lines_per_chunk = (image_dimension.height as f32 / NUM_THREADS as f32).ceil() as u32;
+    for chunk in 0..NUM_THREADS as u32 {
+        let thread_sender = sender.clone();
+        let thread_scene = scene.clone();
+        thread_pool.execute(move || {
+            for y in chunk*lines_per_chunk..image_dimension.height.min((chunk+1)*lines_per_chunk) {
+                let mut image_line: Vec<Rgb<u8>> = Vec::with_capacity(image_dimension.width as usize);
+                for x in 0..image_dimension.width {
+                    let pixel_location = camera_to_world_mat *
+                                            dvec4!((2.0 * ((x as f64 + 0.5)/image_dimension.width as f64) - 1.0) * x_factor,
+                                                   (1.0 - 2.0 * (y as f64 + 0.5)/image_dimension.height as f64) * fov_factor, 
+                                                    1, 
+                                                    1);
+                    
+                    let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), RECURSION_DEPTH);
 
-                let color = thread_scene.cast_ray(prime_ray);
+                    let color = thread_scene.cast_ray(prime_ray);
 
-                thread_sender.send((x, y, color.clamp().to_rgb())).unwrap();
-            });
-        }
+                    image_line.push(color.clamp().to_rgb());
+                }
+                thread_sender.send((y, image_line)).unwrap();
+            }
+        });
     }
 
     let total_num_rays = image_dimension.height * image_dimension.width;
-    for progress in 0..total_num_rays {
-        let (x, y, color) = receiver.recv().unwrap();
-        image.put_pixel(x, y, color);
+    for progress in 0..image_dimension.height {
+        let (y, line_colors) = receiver.recv().unwrap();
+        for x in 0..image_dimension.width {
+            image.put_pixel(x, y, line_colors[x as usize]);
+        }
         // TODO: print progress
         //if progress % image_dimension.width == 0 {
         //    println!("{}/{}", progress, total_num_rays);
