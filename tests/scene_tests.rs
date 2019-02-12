@@ -126,7 +126,7 @@ fn create_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
 fn scene_test_1() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
-    test_scene.root = create_interior_box(room_size);
+    test_scene.root = Box::new(create_interior_box(room_size));
     test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
@@ -141,7 +141,7 @@ fn scene_test_1() {
 fn scene_test_2() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
-    test_scene.root = create_interior_mirror_box(room_size);
+    test_scene.root = Box::new(create_interior_mirror_box(room_size));
     test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
@@ -156,7 +156,7 @@ fn scene_test_2() {
 fn scene_test_3() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
-    test_scene.root = create_interior_box(room_size);
+    test_scene.root = Box::new(create_interior_box(room_size));
     test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
@@ -171,7 +171,7 @@ fn scene_test_3() {
 fn scene_test_4() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
-    test_scene.root = create_interior_box(room_size);
+    test_scene.root = Box::new(create_interior_box(room_size));
     test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
@@ -186,7 +186,7 @@ fn scene_test_4() {
 fn scene_test_5() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
-    test_scene.root = create_interior_box(room_size);
+    test_scene.root = Box::new(create_interior_box(room_size));
     test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
@@ -202,7 +202,7 @@ fn refraction_test() {
     for i in 0..11 {
         let mut test_scene = Scene::new();
         let room_size = 200.0;
-        test_scene.root = create_interior_box(room_size);
+        test_scene.root = Box::new(create_interior_box(room_size));
         test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
         test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
@@ -219,7 +219,7 @@ fn scene_light_1() {
     for i in 1..11 {
         let mut test_scene = Scene::new();
         let room_size = 200.0;
-        test_scene.root = create_interior_box(room_size);
+        test_scene.root = Box::new(create_interior_box(room_size));
         test_scene.add_light(PointLight::new(dvec3!((room_size/3.0), (room_size/2.0)*0.6, (room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI)));
         test_scene.add_light(PointLight::new(dvec3!(-(room_size/3.0), (room_size/2.0)*0.6, (room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI)));
         test_scene.add_light(PointLight::new(dvec3!((room_size/3.0), (room_size/2.0)*0.6, -(room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI)));

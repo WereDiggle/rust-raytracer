@@ -11,7 +11,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct Scene {
     // TODO: root node should be more generic
-    pub root: SceneNode,
+    pub root: Box<Transformable + Send + Sync>,
     pub lights: Vec<PointLight>,
     pub ambient_light: AmbientLight,
     pub background: Arc<RgbImage>,
@@ -19,7 +19,7 @@ pub struct Scene {
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene{ root: SceneNode::new(), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0), background: Arc::new(ImageBuffer::new(1, 1))}
+        Scene{ root: Box::new(SceneNode::new()), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0), background: Arc::new(ImageBuffer::new(1, 1))}
     }
 
     pub fn cast_ray(&self, ray: Ray) -> Color {

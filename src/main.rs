@@ -6,7 +6,6 @@ use euler::*;
 
 fn main() {
     let mut test_scene = Scene::new();
-    test_scene.root.set_primitive(Box::new(Sphere::new(2.0)));
     test_scene.add_light(PointLight::new(dvec3!(0.0, 1000.0, 0.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
 
     write_to_png(render(test_scene.clone(), 

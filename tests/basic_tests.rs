@@ -10,7 +10,9 @@ use euler::*;
 
 fn setup_scene() -> Scene {
     let mut test_scene = Scene::new();
-    test_scene.root.set_primitive(Box::new(Sphere::new(100.0)));
+    let mut root = SceneNode::new();
+    root.set_primitive(Box::new(Sphere::new(100.0)));
+    test_scene.root = Box::new(root);
     test_scene.add_light(PointLight::new(dvec3!(0.0, 1000.0, 200.0), Color::new(0.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
     test_scene
 }
@@ -26,7 +28,9 @@ fn setup_camera() -> CameraConfig {
 fn white_sphere_one_light() {
     let mut test_scene = setup_scene();
     let test_material = PhongShader::new(Color::WHITE*1.0, Color::WHITE*0.0, Color::WHITE*0.1, 1.0);
-    test_scene.root.set_material(Box::new(test_material));
+    let mut root = SceneNode::new();
+    root.set_material(Box::new(test_material));
+    test_scene.root = Box::new(root);
     let image = render(test_scene, square_image(512), setup_camera());
     write_to_png( image, "output/test1");
 }
@@ -36,7 +40,9 @@ fn phong_test_1() {
     let mut test_scene = setup_scene();
     let test_material = PhongShader::new(Color::WHITE*0.1, Color::WHITE*0.9, Color::WHITE*0.1, 2.0);
     test_scene.add_light(PointLight::new(dvec3!(200.0, 200.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
-    test_scene.root.set_material(Box::new(test_material));
+    let mut root = SceneNode::new();
+    root.set_material(Box::new(test_material));
+    test_scene.root = Box::new(root);
     let image = render(test_scene, square_image(512), setup_camera());
     write_to_png( image, "output/phong1");
 }
@@ -46,7 +52,9 @@ fn phong_test_2() {
     let mut test_scene = setup_scene();
     let test_material = PhongShader::new(Color::WHITE*0.1, Color::WHITE*0.9, Color::WHITE*0.1, 4.0);
     test_scene.add_light(PointLight::new(dvec3!(200.0, 200.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
-    test_scene.root.set_material(Box::new(test_material));
+    let mut root = SceneNode::new();
+    root.set_material(Box::new(test_material));
+    test_scene.root = Box::new(root);
     let image = render(test_scene, square_image(512), setup_camera());
     write_to_png( image, "output/phong2");
 }
@@ -55,8 +63,10 @@ fn phong_test_2() {
 fn plane_test_1() {
     let mut test_scene = setup_scene();
     let test_material = PhongShader::new(Color::WHITE*0.1, Color::WHITE*0.9, Color::WHITE*0.1, 4.0);
-    test_scene.root.set_material(Box::new(test_material));
-    test_scene.root.set_primitive(Box::new(RectangularPlane::new(100.0, 100.0)));
+    let mut root = SceneNode::new();
+    root.set_material(Box::new(test_material));
+    root.set_primitive(Box::new(RectangularPlane::new(100.0, 100.0)));
+    test_scene.root = Box::new(root);
     test_scene.add_light(PointLight::new(dvec3!(0.0, 0.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
     let camera_config = CameraConfig{ origin: dvec3!(50.0, 50.0, 200.0),
                                       target: dvec3!(0.0, 0.0, 0.0),
@@ -69,9 +79,12 @@ fn plane_test_1() {
 fn setup_diffuse_cube(transform: DMat4) -> Scene {
     let mut scene = Scene::new();
     let material = PhongShader::new(Color::WHITE*0.9, Color::WHITE*0.0, Color::WHITE*0.1, 4.0);
-    scene.root.set_transform(transform);
-    scene.root.set_material(Box::new(material));
-    scene.root.set_primitive(Box::new(Cube::new(100.0)));
+    let mut root = SceneNode::new();
+    root.set_transform(transform);
+    root.set_material(Box::new(material));
+    root.set_primitive(Box::new(Cube::new(100.0)));
+
+    scene.root = Box::new(root);
     scene.add_light(PointLight::new(dvec3!(200.0, 300.0, 400.0), Color::new(1.0, 1.0, 1.0), 2.0, (1.0, 0.0, 0.0)));
     scene
 }
@@ -125,7 +138,7 @@ fn setup_multiple_cubes_same_transform(num_cubes: u32, transform: DMat4) -> Scen
         scene_node = base_node.clone();
         scene_node.add_child(Box::new(prev_node.clone()));
     }
-    scene.root = scene_node;
+    scene.root = Box::new(scene_node);
     scene
 }
 
@@ -141,15 +154,17 @@ fn child_transform_test_1() {
 fn shadow_test_1() {
     let mut test_scene = setup_scene();
     let test_material = PhongShader::new(Color::WHITE*0.1, Color::WHITE*0.9, Color::WHITE*0.1, 4.0);
-    test_scene.add_light(PointLight::new(dvec3!(200.0, 200.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
-    test_scene.root.set_material(Box::new(test_material));
-    test_scene.root.set_transform(translation(-100.0, -100.0, -100.0));
+    let mut root = SceneNode::new();
+    root.set_material(Box::new(test_material));
+    root.set_transform(translation(-100.0, -100.0, -100.0));
 
     let mut small_sphere = SceneNode::new();
     small_sphere.set_primitive(Box::new(Sphere::new(50.0)));
     small_sphere.set_transform(translation(100.0, 100.0, 100.0));
-    test_scene.root.add_child(Box::new(small_sphere));
+    root.add_child(Box::new(small_sphere));
 
+    test_scene.root = Box::new(root);
+    test_scene.add_light(PointLight::new(dvec3!(200.0, 200.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)));
     let image = render(test_scene, square_image(512), setup_camera());
     write_to_png( image, "output/shadow_1");
 }
