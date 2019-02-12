@@ -65,6 +65,8 @@ pub fn render(scene: Scene,
     let thread_pool = ThreadPool::new(NUM_THREADS);
     let (sender, receiver) = mpsc::channel::<(u32, u32, Rgb<u8>)>();
 
+
+    // TODO: divide tasks only into chunks instead of each individual ray getting a task
     for y in 0..image_dimension.height {
         for x in 0..image_dimension.width {
             let thread_sender = sender.clone();
@@ -85,9 +87,14 @@ pub fn render(scene: Scene,
         }
     }
 
-    for _ in 0..image_dimension.height*image_dimension.width {
+    let total_num_rays = image_dimension.height * image_dimension.width;
+    for progress in 0..total_num_rays {
         let (x, y, color) = receiver.recv().unwrap();
         image.put_pixel(x, y, color);
+        // TODO: print progress
+        //if progress % image_dimension.width == 0 {
+        //    println!("{}/{}", progress, total_num_rays);
+        //}
     }
 
     image

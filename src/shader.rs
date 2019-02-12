@@ -9,8 +9,8 @@ use snowflake::ProcessUniqueId;
 pub trait Shadable: ShadableClone {
     fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color;
 
-    fn get_transparency(&self) -> Color {
-        Color::BLACK
+    fn get_opacity(&self) -> Color {
+        Color::WHITE
     }
 }
 
@@ -34,6 +34,39 @@ impl Clone for Box<Shadable + Send + Sync> {
 }
 
 #[derive(Clone)]
+pub struct CompositeShader {
+    shaders: Vec<(f64, Box<Shadable + Send + Sync>)>,
+}
+
+impl CompositeShader {
+    pub fn new() -> CompositeShader {
+        CompositeShader{shaders: Vec::new()}
+    }
+
+    pub fn add_shader(&mut self, weight: f64, shader: Box<Shadable + Send + Sync>) {
+        self.shaders.push((weight, shader));
+    }
+}
+
+impl Shadable for CompositeShader {
+    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
+        let mut total_color = Color::BLACK;
+        for (weight, shader) in self.shaders.iter() {
+            total_color += *weight * shader.get_color(scene, ray, hit_point, surface_normal);
+        }
+        total_color
+    }
+
+    fn get_opacity(&self) -> Color {
+        let mut total_opacity = Color::BLACK; 
+        for (weight, shader) in self.shaders.iter() {
+            total_opacity += *weight * shader.get_opacity();
+        }
+        total_opacity
+    }
+}
+
+#[derive(Clone)]
 pub struct PhongShader {
     diffuse: Color,
     specular: Color,
@@ -53,9 +86,9 @@ enum Hit {
     Exit,
 }
 
-fn total_light_blocked(transparency: Color, enter: f64, exit: f64) -> Color {
+fn total_light_blocked(opacity: Color, enter: f64, exit: f64) -> Color {
     let total_distance = exit - enter;
-    let total_blocked = (Color::WHITE - transparency) * total_distance;
+    let total_blocked = opacity * total_distance;
     total_blocked
 }
 
@@ -81,7 +114,7 @@ impl Shadable for PhongShader {
 
             // TODO: figure out how much light through should be given shadow_intersects
             for shadow_intersect in shadow_intersects {
-                shadow_map.entry(shadow_intersect.hit_id).or_insert((shadow_intersect.shader.get_transparency(), Vec::new()));
+                shadow_map.entry(shadow_intersect.hit_id).or_insert((shadow_intersect.shader.get_opacity(), Vec::new()));
                 if let Some((_, vec)) = shadow_map.get_mut(&shadow_intersect.hit_id) {
                     let dot = shadow_intersect.surface_normal.dot(shadow_intersect.ray.direction);
                     let (hit_type, mut last_hit_type) = if dot < 0.0 {(Hit::Enter, Hit::Exit)} else {(Hit::Exit, Hit::Enter)}; 
@@ -97,7 +130,7 @@ impl Shadable for PhongShader {
             }
 
             // TODO: this whole block is probably wrong
-            for (_, (transparency, vec)) in shadow_map {
+            for (_, (opacity, vec)) in shadow_map {
                 assert!(vec.len() > 0);
                 let mut vec_iter = vec.iter();
                 while light_through.or_greater(Color::BLACK) {
@@ -109,7 +142,7 @@ impl Shadable for PhongShader {
                             Hit::Enter => enter_distance = *distance,
                             Hit::Exit => {
                                 exit_distance = *distance;
-                                light_through -= total_light_blocked(transparency, enter_distance, exit_distance);
+                                light_through -= total_light_blocked(opacity, enter_distance, exit_distance);
                                 continue;
                             },
                         }
@@ -127,7 +160,7 @@ impl Shadable for PhongShader {
                             },
                         }
                     }
-                    light_through -= total_light_blocked(transparency, enter_distance, exit_distance);
+                    light_through -= total_light_blocked(opacity, enter_distance, exit_distance);
                 }
             }
             light_through = light_through.clamp();
@@ -187,7 +220,7 @@ impl Shadable for TranslucentShader {
         }
     }
 
-    fn get_transparency(&self) -> Color {
-        self.translucency
+    fn get_opacity(&self) -> Color {
+        Color::WHITE - self.translucency
     }
 }

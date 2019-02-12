@@ -4,17 +4,22 @@ use light::{AmbientLight, PointLight};
 use geometry::{matrix, Intersect, Intersectable, Ray};
 use shader::{Shadable, PhongShader};
 use snowflake::ProcessUniqueId;
+use image::{RgbImage, ImageBuffer};
+use std::f64::consts::PI;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Scene {
+    // TODO: root node should be more generic
     pub root: SceneNode,
     pub lights: Vec<PointLight>,
-    pub ambient_light: AmbientLight
+    pub ambient_light: AmbientLight,
+    pub background: Arc<RgbImage>,
 }
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene{ root: SceneNode::new(), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0)}
+        Scene{ root: SceneNode::new(), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0), background: Arc::new(ImageBuffer::new(1, 1))}
     }
 
     pub fn cast_ray(&self, ray: Ray) -> Color {
@@ -24,7 +29,7 @@ impl Scene {
                 return intersect.shader.get_color(self, ray, intersect.hit_point, intersect.surface_normal);
             }
         }
-        Color::new(0.0, 0.0, 0.0)
+        self.get_background_color(ray)
     }
 
     pub fn cast_ray_get_distance(&self, ray: Ray) -> (f64, Color) {
@@ -34,11 +39,37 @@ impl Scene {
                 return (intersect.distance, intersect.shader.get_color(self, ray, intersect.hit_point, intersect.surface_normal));
             }
         }
-        (0.0, Color::new(0.0, 0.0, 0.0))
+        (0.0, self.get_background_color(ray))
     }
 
     pub fn add_light(&mut self, light: PointLight) {
         self.lights.push(light);
+    }
+
+    pub fn set_background_from_path(&mut self, file_path: &str) {
+        self.background = Arc::new(image::open(file_path).unwrap().to_rgb());
+    }
+
+    fn get_background_color(&self, ray: Ray) -> Color {
+        let azimuth = ray.direction.z.atan2(ray.direction.x);
+        let elevation = ray.direction.y.asin();
+
+        let u = (azimuth/2.0)/PI + 0.5;
+        let v = elevation/PI + 0.5;
+        assert!(u >= 0.0 && u <= 1.0);
+        assert!(v >= 0.0 && v <= 1.0);
+        let v = 1.0 - v;
+
+        let u = self.background.width() as f64 * u;
+        let v = self.background.height() as f64 * v;
+
+        assert!(self.background.width() > 0);
+        assert!(self.background.height() > 0);
+
+        let u = (u.floor() as u32).min(self.background.width()-1);
+        let v = (v.floor() as u32).min(self.background.height()-1);
+
+        Color::from_rgb(self.background.get_pixel(u, v))
     }
 }
 

@@ -17,6 +17,14 @@ fn create_wall(size: f64, color: Color, transform: DMat4) -> SceneNode {
     wall
 }
 
+fn create_floor(size: f64, color: Color) -> SceneNode {
+    let mut floor = SceneNode::new();
+    floor.set_primitive(Box::new(RectangularPlane::new(size, size)));
+    floor.set_material(Box::new(PhongShader::new(color*1.0, color*0.0, color*0.1, 1.0)));
+    floor.set_transform(rotation(Axis::X, -90.0));
+    floor
+}
+
 fn create_mirror(size: f64, color: Color, transform: DMat4) -> SceneNode {
     let mut wall = SceneNode::new();
     wall.set_primitive(Box::new(RectangularPlane::new(size, size)));
@@ -81,6 +89,27 @@ fn create_translucent_sphere(size: f64, transform: DMat4, color: Color, refracti
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
     sphere.set_material(Box::new(TranslucentShader::new(color*1.0, refractive_index)));
+    sphere.set_transform(transform);
+    sphere
+}
+
+fn create_mirror_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
+    let mut sphere = SceneNode::new();
+    sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
+    sphere.set_material(Box::new(ReflectionShader::new(color*1.0)));
+    sphere.set_transform(transform);
+    sphere
+}
+
+fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
+    let mut sphere = SceneNode::new();
+    sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
+    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
+    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
+    let mut comp = Box::new(CompositeShader::new());
+    comp.add_shader(0.8, phong);
+    comp.add_shader(0.2, reflect);
+    sphere.set_material(comp);
     sphere.set_transform(transform);
     sphere
 }
@@ -199,4 +228,42 @@ fn scene_light_1() {
         let image = render(test_scene, image(512, 512), camera([0.0, 0.0, 200.0], [0.0; 3]));
         write_to_png( image, &format!("output/lighting/light_scene_{:02}", i));
     }
+}
+
+#[test]
+fn background_1() {
+    let mut scene = Scene::new();
+    let sphere = create_translucent_sphere(50.0, translation(-60.0, 0.0, 0.0), Color::WHITE, 1.52);
+    scene.root.add_child(Box::new(sphere));
+    let sphere2 = create_mirror_sphere(50.0, translation(60.0, 0.0, 0.0), Color::WHITE);
+    scene.root.add_child(Box::new(sphere2));
+    scene.add_light(PointLight::new(dvec3!(0.0, 60, 60), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
+    scene.set_background_from_path("assets/images/backgrounds/room.jpg");
+
+    println!("after setting background");
+    let image = render(scene, image(512, 512), camera([0.0, 0.0, 200.0], [0.0, 0.0, 0.0]));
+    write_to_png( image, "output/background_1");
+}
+
+#[test]
+fn many_balls() {
+    let mut scene = Scene::new();
+    let sphere1 = create_comp_sphere(80.0, translation(-150.0, 80.0, 40.0), Color::RED);
+    let sphere2 = create_comp_sphere(60.0, translation(80.0, 60.0, 0.0), Color::BLUE);
+    let sphere3 = create_comp_sphere(40.0, translation(50.0, 40.0, 150.0), Color::GREEN);
+    let sphere4 = create_comp_sphere(20.0, translation(-50.0, 20.0, 150.0), Color::PURPLE);
+    let floor = create_floor(600.0, Color::GRAY);
+    scene.root.add_child(Box::new(sphere1));
+    scene.root.add_child(Box::new(sphere2));
+    scene.root.add_child(Box::new(sphere3));
+    scene.root.add_child(Box::new(sphere4));
+    scene.root.add_child(Box::new(floor));
+
+    scene.add_light(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)));
+    scene.ambient_light = AmbientLight::new(Color::WHITE, 0.0);
+    scene.set_background_from_path("assets/images/backgrounds/forest2.jpg");
+
+    let image = render(scene, image(1920, 1080), camera([0.0, 200.0, 400.0], [0.0, 0.0, 0.0]));
+    write_to_png( image, "output/many_balls");
 }

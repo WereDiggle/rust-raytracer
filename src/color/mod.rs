@@ -54,7 +54,7 @@ impl Color {
         }
     }
 
-    pub fn from_rgb(rgb: Rgb<u8>) -> Color {
+    pub fn from_rgb(rgb: &Rgb<u8>) -> Color {
         Color {
             red: gamma_decode((rgb.data[0] as f64) / 255.0),
             green: gamma_decode((rgb.data[1] as f64) / 255.0),
