@@ -25,7 +25,6 @@ const AA_THRESHOLD: f64 = 0.08;
 const NUM_THREADS: usize = 8;
 const RECURSION_DEPTH: u32 = 20;
 
-
 #[derive(Clone, Copy)]
 pub struct RenderConfig {
     pub num_threads: usize,
@@ -38,7 +37,7 @@ impl RenderConfig {
     pub fn default() -> RenderConfig {
         RenderConfig {
             num_threads: NUM_THREADS,
-            anti_alias: false,
+            anti_alias: true,
             aa_threshold: AA_THRESHOLD,
             recursion_depth: RECURSION_DEPTH,
         }
@@ -108,6 +107,13 @@ pub fn render_with_config(  scene: Scene,
             camera_config.origin.x, camera_config.origin.y, camera_config.origin.z, 1,
     );
 
+    let calculate_pixel_location = move |x: f64, y: f64| -> DVec3 {
+        (camera_to_world_mat * dvec4!((2.0 * ((x as f64 + 0.5)/width as f64) - 1.0) * x_factor, 
+                                     (1.0 - 2.0 * (y as f64 + 0.5)/height as f64) * fov_factor, 
+                                      1, 
+                                      1)).xyz()
+    };
+
     let thread_pool = ThreadPool::new(render_config.num_threads);
     let (sender, receiver) = mpsc::channel::<(u32, Vec<Color>)>();
 
@@ -119,13 +125,9 @@ pub fn render_with_config(  scene: Scene,
             let mut image_line: Vec<Color> = Vec::with_capacity((width * lines_per_chunk) as usize);
             for y in chunk*lines_per_chunk..height.min((chunk+1)*lines_per_chunk) {
                 for x in 0..width {
-                    let pixel_location = camera_to_world_mat *
-                                            dvec4!((2.0 * ((x as f64 + 0.5)/width as f64) - 1.0) * x_factor,
-                                                (1.0 - 2.0 * (y as f64 + 0.5)/height as f64) * fov_factor, 
-                                                    1, 
-                                                    1);
+                    let pixel_location = calculate_pixel_location(x as f64 + 0.5, y as f64 + 0.5);
                     
-                    let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), render_config.recursion_depth);
+                    let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
 
                     let color = thread_scene.cast_ray(prime_ray);
                     //let color = cast_anti_alias_ray(&thread_scene, prime_ray);
@@ -142,9 +144,6 @@ pub fn render_with_config(  scene: Scene,
     for _ in 0..render_config.num_threads {
         let (i, line_colors) = receiver.recv().unwrap();
         collected_chunks[i as usize] = line_colors;
-        //if progress % image_dimension.width == 0 {
-        //    println!("{}/{}", progress, total_num_rays);
-        //}
     }
 
     let mut color_vec: Vec<Color> = Vec::with_capacity((width * height) as usize);
@@ -153,52 +152,34 @@ pub fn render_with_config(  scene: Scene,
     }
 
     // ANTI ALIASING
-    // TODO: refactor all this code so that it isn't such a garbage fire
     if render_config.anti_alias {
-        let mut aa_corrections: Vec<(Vec<(i8, i8)>, u32, u32)> = Vec::new();
+        let eight_directions: [(i64, i64); 8] = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1,-1), (1,0), (1,1)];
+        let mut aa_corrections: Vec<(u32, u32)> = Vec::new();
         for y in 1..height-1 {
             for x in 1..width-1 {
                 let color_i = (y*width+x) as usize;
-                let mut correction_directions: Vec<(i8, i8)> = Vec::new();
-                if  color_vec[color_i].diff(color_vec[color_i -width as usize -1]) > render_config.aa_threshold ||
-                    color_vec[color_i].diff(color_vec[color_i -width as usize]) > render_config.aa_threshold ||
-                    color_vec[color_i].diff(color_vec[color_i -width as usize +1]) > render_config.aa_threshold ||
-                    color_vec[color_i].diff(color_vec[color_i -1]) > render_config.aa_threshold ||
-                    color_vec[color_i].diff(color_vec[color_i +1]) > render_config.aa_threshold ||
-                    color_vec[color_i].diff(color_vec[color_i +width as usize -1]) > render_config.aa_threshold ||
-                    color_vec[color_i].diff(color_vec[color_i +width as usize]) > render_config.aa_threshold ||
-                    color_vec[color_i].diff(color_vec[color_i +width as usize +1]) > render_config.aa_threshold {
-
-                    correction_directions.push((-1, -1));
-                    correction_directions.push((-1, 0));
-                    correction_directions.push((-1, 1));
-                    correction_directions.push((0, -1));
-                    correction_directions.push((0, 1));
-                    correction_directions.push((1, -1));
-                    correction_directions.push((1, 0));
-                    correction_directions.push((1, 1));
-                }
-                if correction_directions.len() > 0 {
-                    aa_corrections.push((correction_directions, x, y));
+                let color = color_vec[color_i];
+                for direc in eight_directions.iter() {
+                    if color.diff(color_vec[color_i +(direc.0*width as i64) as usize -direc.1 as usize]) > render_config.aa_threshold {
+                        aa_corrections.push((x, y));
+                        break;
+                    }
                 }
             }
         }
 
         for correction in aa_corrections.iter() {
-            let x = correction.1;
-            let y = correction.2;
+            let x = correction.0;
+            let y = correction.1;
             let color_i = (y*width+x) as usize;
-            let mut correction_colors: Vec<Color> = vec!(color_vec[color_i]);
-            for correction_dir in correction.0.iter() {
+            let mut correction_colors: Vec<Color> = Vec::with_capacity(9);
+            correction_colors.push(color_vec[color_i]);
+            for correction_dir in eight_directions.iter() {
                 let corr_x = correction_dir.0 as f64;
                 let corr_y = correction_dir.1 as f64;
-                let pixel_location = camera_to_world_mat *
-                                        dvec4!((2.0 * ((x as f64 + 0.5 + (corr_x * 0.4))/width as f64) - 1.0) * x_factor,
-                                            (1.0 - 2.0 * (y as f64 + 0.5 + (corr_y * 0.4))/height as f64) * fov_factor, 
-                                                1, 
-                                                1);
-                
-                let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), render_config.recursion_depth);
+
+                let pixel_location = calculate_pixel_location(x as f64 + 0.5 + (corr_x * 0.4), y as f64 + 0.5 + (corr_y * 0.4));
+                let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
 
                 correction_colors.push(scene.cast_ray(prime_ray));
             }
@@ -224,11 +205,6 @@ fn make_image(width: u32, height: u32, colors: Vec<Color>) -> RgbImage {
         panic!("Could not convert rgb_vec into image");
     }
 } 
-
-pub fn cast_anti_alias_ray(scene: &Scene, ray: Ray) -> Color {
-    scene.cast_ray(ray)
-}
-
 
 pub fn write_to_png(img: RgbImage, file_name: &str) {
     match img.save(format!("{}.png", file_name)) {
