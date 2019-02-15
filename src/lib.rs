@@ -22,6 +22,28 @@ pub use light::*;
 pub use multithread::*;
 
 const AA_THRESHOLD: f64 = 0.08;
+const NUM_THREADS: usize = 8;
+const RECURSION_DEPTH: u32 = 20;
+
+
+#[derive(Clone, Copy)]
+pub struct RenderConfig {
+    pub num_threads: usize,
+    pub anti_alias: bool,
+    pub aa_threshold: f64,
+    pub recursion_depth: u32,
+}
+
+impl RenderConfig {
+    pub fn default() -> RenderConfig {
+        RenderConfig {
+            num_threads: NUM_THREADS,
+            anti_alias: false,
+            aa_threshold: AA_THRESHOLD,
+            recursion_depth: RECURSION_DEPTH,
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct ImageDimension {
@@ -57,13 +79,17 @@ impl CameraConfig {
         }
     }
 }
-
-const NUM_THREADS: usize = 8;
-const RECURSION_DEPTH: u32 = 20;
-
 pub fn render(scene: Scene,
-            image_dimension: ImageDimension,
-            camera_config: CameraConfig) -> RgbImage {
+              image_dimension: ImageDimension,
+              camera_config: CameraConfig) -> RgbImage {
+
+    let render_config = RenderConfig::default();                  
+    render_with_config(scene, image_dimension, camera_config, render_config)
+}
+pub fn render_with_config(  scene: Scene,
+                            image_dimension: ImageDimension,
+                            camera_config: CameraConfig,
+                            render_config: RenderConfig) -> RgbImage {
 
     let width = image_dimension.width;
     let height = image_dimension.height;
@@ -82,11 +108,11 @@ pub fn render(scene: Scene,
             camera_config.origin.x, camera_config.origin.y, camera_config.origin.z, 1,
     );
 
-    let thread_pool = ThreadPool::new(NUM_THREADS);
+    let thread_pool = ThreadPool::new(render_config.num_threads);
     let (sender, receiver) = mpsc::channel::<(u32, Vec<Color>)>();
 
-    let lines_per_chunk = (height as f32 / NUM_THREADS as f32).ceil() as u32;
-    for chunk in 0..NUM_THREADS as u32 {
+    let lines_per_chunk = (height as f32 / render_config.num_threads as f32).ceil() as u32;
+    for chunk in 0..render_config.num_threads as u32 {
         let thread_sender = sender.clone();
         let thread_scene = scene.clone();
         thread_pool.execute(move || {
@@ -99,7 +125,7 @@ pub fn render(scene: Scene,
                                                     1, 
                                                     1);
                     
-                    let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), RECURSION_DEPTH);
+                    let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), render_config.recursion_depth);
 
                     let color = thread_scene.cast_ray(prime_ray);
                     //let color = cast_anti_alias_ray(&thread_scene, prime_ray);
@@ -112,8 +138,8 @@ pub fn render(scene: Scene,
     }
 
     //let total_num_rays = image_dimension.height * image_dimension.width;
-    let mut collected_chunks: Vec<Vec<Color>> = vec![Vec::new(); NUM_THREADS];
-    for _ in 0..NUM_THREADS {
+    let mut collected_chunks: Vec<Vec<Color>> = vec![Vec::new(); render_config.num_threads];
+    for _ in 0..render_config.num_threads {
         let (i, line_colors) = receiver.recv().unwrap();
         collected_chunks[i as usize] = line_colors;
         //if progress % image_dimension.width == 0 {
@@ -127,39 +153,62 @@ pub fn render(scene: Scene,
     }
 
     // ANTI ALIASING
-    let mut aa_corrections: Vec<(usize, Color)> = Vec::new();
-    for y in 1..height-1 {
-        for x in 1..width-1 {
-            let color_i = (y*width+x) as usize;
-            if color_vec[color_i].diff(color_vec[color_i -width as usize -1]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
-            }
-            if color_vec[color_i].diff(color_vec[color_i -width as usize]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
-            }
-            if color_vec[color_i].diff(color_vec[color_i -width as usize +1]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
-            }
-            if color_vec[color_i].diff(color_vec[color_i -1]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
-            }
-            if color_vec[color_i].diff(color_vec[color_i +1]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
-            }
-            if color_vec[color_i].diff(color_vec[color_i +width as usize -1]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
-            }
-            if color_vec[color_i].diff(color_vec[color_i +width as usize]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
-            }
-            if color_vec[color_i].diff(color_vec[color_i +width as usize +1]) > AA_THRESHOLD {
-                aa_corrections.push((color_i, Color::HOT_PINK));
+    // TODO: refactor all this code so that it isn't such a garbage fire
+    if render_config.anti_alias {
+        let mut aa_corrections: Vec<(Vec<(i8, i8)>, u32, u32)> = Vec::new();
+        for y in 1..height-1 {
+            for x in 1..width-1 {
+                let color_i = (y*width+x) as usize;
+                let mut correction_directions: Vec<(i8, i8)> = Vec::new();
+                if  color_vec[color_i].diff(color_vec[color_i -width as usize -1]) > render_config.aa_threshold ||
+                    color_vec[color_i].diff(color_vec[color_i -width as usize]) > render_config.aa_threshold ||
+                    color_vec[color_i].diff(color_vec[color_i -width as usize +1]) > render_config.aa_threshold ||
+                    color_vec[color_i].diff(color_vec[color_i -1]) > render_config.aa_threshold ||
+                    color_vec[color_i].diff(color_vec[color_i +1]) > render_config.aa_threshold ||
+                    color_vec[color_i].diff(color_vec[color_i +width as usize -1]) > render_config.aa_threshold ||
+                    color_vec[color_i].diff(color_vec[color_i +width as usize]) > render_config.aa_threshold ||
+                    color_vec[color_i].diff(color_vec[color_i +width as usize +1]) > render_config.aa_threshold {
+
+                    correction_directions.push((-1, -1));
+                    correction_directions.push((-1, 0));
+                    correction_directions.push((-1, 1));
+                    correction_directions.push((0, -1));
+                    correction_directions.push((0, 1));
+                    correction_directions.push((1, -1));
+                    correction_directions.push((1, 0));
+                    correction_directions.push((1, 1));
+                }
+                if correction_directions.len() > 0 {
+                    aa_corrections.push((correction_directions, x, y));
+                }
             }
         }
-    }
 
-    for correction in aa_corrections.iter() {
-        color_vec[correction.0] = correction.1;
+        for correction in aa_corrections.iter() {
+            let x = correction.1;
+            let y = correction.2;
+            let color_i = (y*width+x) as usize;
+            let mut correction_colors: Vec<Color> = vec!(color_vec[color_i]);
+            for correction_dir in correction.0.iter() {
+                let corr_x = correction_dir.0 as f64;
+                let corr_y = correction_dir.1 as f64;
+                let pixel_location = camera_to_world_mat *
+                                        dvec4!((2.0 * ((x as f64 + 0.5 + (corr_x * 0.4))/width as f64) - 1.0) * x_factor,
+                                            (1.0 - 2.0 * (y as f64 + 0.5 + (corr_y * 0.4))/height as f64) * fov_factor, 
+                                                1, 
+                                                1);
+                
+                let prime_ray = Ray::from_destination(camera_config.origin, pixel_location.xyz(), render_config.recursion_depth);
+
+                correction_colors.push(scene.cast_ray(prime_ray));
+            }
+            let mut total_color = Color::BLACK;
+            let num_colors = correction_colors.len();
+            for color in correction_colors.into_iter() {
+                total_color += color;
+            }
+            color_vec[color_i] = total_color / num_colors as f64;
+        }
     }
 
     make_image(image_dimension.width, image_dimension.height, color_vec)
