@@ -1,6 +1,6 @@
 use euler::DMat4;
 use color::Color;
-use light::{AmbientLight, PointLight};
+use light::{Lightable, AmbientLight};
 use geometry::{matrix, Intersect, Intersectable, Ray};
 use shader::{Shadable, PhongShader};
 use snowflake::ProcessUniqueId;
@@ -10,9 +10,8 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Scene {
-    // TODO: root node should be more generic
     pub root: Box<Transformable + Send + Sync>,
-    pub lights: Vec<PointLight>,
+    pub lights: Vec<Box<Lightable + Send + Sync>>,
     pub ambient_light: AmbientLight,
     pub background: Arc<RgbImage>,
 }
@@ -42,7 +41,7 @@ impl Scene {
         (0.0, self.get_background_color(ray))
     }
 
-    pub fn add_light(&mut self, light: PointLight) {
+    pub fn add_light(&mut self, light: Box<Lightable + Send + Sync>) {
         self.lights.push(light);
     }
 

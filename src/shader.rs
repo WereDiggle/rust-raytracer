@@ -97,14 +97,14 @@ impl Shadable for PhongShader {
         assert!(surface_normal.length() - 1.0 < 0.000001);
         let mut total_color = self.ambient * scene.ambient_light.color_intensity();
         for light in &scene.lights {
-            let light_direction = (light.position - hit_point).normalize();
+            let light_direction = -1.0 * light.get_direction_to(hit_point);
             let light_surface_dot = light_direction.dot(surface_normal);
             if light_surface_dot <= 0.0 {
                 continue;
             }
 
             let shadow_ray = Ray::new(hit_point, light_direction, 1);
-            let light_distance = (light.position - hit_point).length();
+            let light_distance = light.get_distance_to(hit_point);
 
             let mut light_through = Color::WHITE;
             let mut shadow_intersects = scene.root.total_trace_until_distance(shadow_ray, light_distance);
@@ -112,13 +112,11 @@ impl Shadable for PhongShader {
 
             let mut shadow_map: HashMap<ProcessUniqueId, (Color, Vec<(Hit, f64)>) > = HashMap::new();
 
-            // TODO: figure out how much light through should be given shadow_intersects
             for shadow_intersect in shadow_intersects {
                 shadow_map.entry(shadow_intersect.hit_id).or_insert((shadow_intersect.shader.get_opacity(), Vec::new()));
                 if let Some((_, vec)) = shadow_map.get_mut(&shadow_intersect.hit_id) {
                     let dot = shadow_intersect.surface_normal.dot(shadow_intersect.ray.direction);
                     let (hit_type, mut last_hit_type) = if dot < 0.0 {(Hit::Enter, Hit::Exit)} else {(Hit::Exit, Hit::Enter)}; 
-                    // TODO: make sure hit_type is alternating
                     if let Some(prev) = vec.last() {
                         last_hit_type = prev.0;
                     }
@@ -129,7 +127,6 @@ impl Shadable for PhongShader {
                 }
             }
 
-            // TODO: this whole block is probably wrong
             for (_, (opacity, vec)) in shadow_map {
                 assert!(vec.len() > 0);
                 let mut vec_iter = vec.iter();
@@ -168,8 +165,9 @@ impl Shadable for PhongShader {
             let reflection_direction = (2.0*light_surface_dot*surface_normal - light_direction).normalize();
             let specular_factor = reflection_direction.dot(-1.0*ray.direction).max(0.0).powf(self.shininess) / light_surface_dot;
             let phong_color = self.specular * specular_factor + self.diffuse;
-            let falloff_factor = light_surface_dot / (light.falloff.0 + light.falloff.1*light_distance + light.falloff.2*light_distance*light_distance);
-            total_color += phong_color * light.color_intensity() * light_through * falloff_factor;
+            //let falloff_factor = light_surface_dot / (light.falloff.0 + light.falloff.1*light_distance + light.falloff.2*light_distance*light_distance);
+            //total_color += phong_color * light.color_intensity() * light_through * falloff_factor;
+            total_color += light_through * phong_color * light_surface_dot * light.get_intensity_at_distance(light_distance);
         }
 
         total_color

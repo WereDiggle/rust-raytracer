@@ -1,6 +1,6 @@
 use euler::{dmat4, DMat4, DVec3, dvec4};
-use scene::SceneNode;
 use shader::Shadable;
+use scene::Transformable;
 use snowflake::ProcessUniqueId;
 
 pub mod matrix {

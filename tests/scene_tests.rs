@@ -107,11 +107,11 @@ fn create_mirror_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode 
 fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
-    //let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
-    let glass = Box::new(TranslucentShader::new(Color::WHITE, 1.52));
+    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
+    //let glass = Box::new(TranslucentShader::new(Color::WHITE, 1.52));
     let reflect = Box::new(ReflectionShader::new(Color::WHITE));
     let mut comp = Box::new(CompositeShader::new());
-    comp.add_shader(0.8, glass);
+    comp.add_shader(0.8, phong);
     comp.add_shader(0.2, reflect);
     sphere.set_material(comp);
     sphere.set_transform(transform);
@@ -131,7 +131,7 @@ fn scene_test_1() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
     test_scene.root = Box::new(create_interior_box(room_size));
-    test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI))));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
     let sphere = create_sphere(25.0, translation(0.0, -75.0, 0.0), Color::NAVY);
@@ -146,7 +146,7 @@ fn scene_test_2() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
     test_scene.root = Box::new(create_interior_mirror_box(room_size));
-    test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI))));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
     let sphere = create_sphere(25.0, translation(0.0, -75.0, 0.0), Color::NAVY);
@@ -161,7 +161,7 @@ fn scene_test_3() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
     test_scene.root = Box::new(create_interior_box(room_size));
-    test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI))));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
     let sphere = create_sphere(50.0, translation(0.0, -50.0, 0.0), Color::NAVY);
@@ -176,7 +176,7 @@ fn scene_test_4() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
     test_scene.root = Box::new(create_interior_box(room_size));
-    test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI))));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
     let sphere = create_translucent_sphere(50.0, translation(0.0, -50.0, 0.0), Color::WHITE, 1.52);
@@ -191,13 +191,13 @@ fn scene_test_5() {
     let mut test_scene = Scene::new();
     let room_size = 200.0;
     test_scene.root = Box::new(create_interior_box(room_size));
-    test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI))));
     test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
     let sphere = create_cube(50.0, translation(0.0, -75.0, 0.0), Color::WHITE);
     test_scene.root.add_child(Box::new(sphere));
 
-    let image = render(test_scene, image(1280, 720), camera([0.0, 0.0, room_size/2.0], [0.0, -(room_size/2.0)*0.6, 0.0]));
+    let image = render(test_scene, image(512, 512), camera([0.0, 0.0, room_size/2.0], [0.0, -(room_size/2.0)*0.6, 0.0]));
     write_to_png( image, "output/scene_5");
 }
 
@@ -207,7 +207,7 @@ fn refraction_test() {
         let mut test_scene = Scene::new();
         let room_size = 200.0;
         test_scene.root = Box::new(create_interior_box(room_size));
-        test_scene.add_light(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+        test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, (room_size/2.0)*0.6, (room_size/2.0)*0.6), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI))));
         test_scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
 
         let sphere = create_translucent_sphere(25.0, translation(0.0, -50.0, 50.0), Color::WHITE, 1.0 + i as f64 * 0.3);
@@ -224,10 +224,10 @@ fn scene_light_1() {
         let mut test_scene = Scene::new();
         let room_size = 200.0;
         test_scene.root = Box::new(create_interior_box(room_size));
-        test_scene.add_light(PointLight::new(dvec3!((room_size/3.0), (room_size/2.0)*0.6, (room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI)));
-        test_scene.add_light(PointLight::new(dvec3!(-(room_size/3.0), (room_size/2.0)*0.6, (room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI)));
-        test_scene.add_light(PointLight::new(dvec3!((room_size/3.0), (room_size/2.0)*0.6, -(room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI)));
-        test_scene.add_light(PointLight::new(dvec3!(-(room_size/3.0), (room_size/2.0)*0.6, -(room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI)));
+        test_scene.add_light(Box::new(PointLight::new(dvec3!((room_size/3.0), (room_size/2.0)*0.6, (room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI))));
+        test_scene.add_light(Box::new(PointLight::new(dvec3!(-(room_size/3.0), (room_size/2.0)*0.6, (room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI))));
+        test_scene.add_light(Box::new(PointLight::new(dvec3!((room_size/3.0), (room_size/2.0)*0.6, -(room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI))));
+        test_scene.add_light(Box::new(PointLight::new(dvec3!(-(room_size/3.0), (room_size/2.0)*0.6, -(room_size/3.0)), Color::new(1.0, 1.0, 1.0), 2000.0 * i as f64, (0.0, 0.0, 4.0*PI))));
 
         let image = render(test_scene, image(512, 512), camera([0.0, 0.0, 200.0], [0.0; 3]));
         write_to_png( image, &format!("output/lighting/light_scene_{:02}", i));
@@ -241,7 +241,7 @@ fn background_1() {
     scene.root.add_child(Box::new(sphere));
     let sphere2 = create_mirror_sphere(50.0, translation(60.0, 0.0, 0.0), Color::WHITE);
     scene.root.add_child(Box::new(sphere2));
-    scene.add_light(PointLight::new(dvec3!(0.0, 60, 60), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI)));
+    scene.add_light(Box::new(PointLight::new(dvec3!(0.0, 60, 60), Color::new(1.0, 1.0, 1.0), 100000.0, (0.0, 0.0, 4.0*PI))));
     scene.ambient_light = AmbientLight::new(Color::WHITE, 1.0);
     scene.set_background_from_path("assets/images/backgrounds/room.jpg");
 
@@ -264,10 +264,10 @@ fn many_balls() {
     scene.root.add_child(Box::new(sphere4));
     scene.root.add_child(Box::new(floor));
 
-    scene.add_light(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)));
+    scene.add_light(Box::new(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI))));
     scene.ambient_light = AmbientLight::new(Color::WHITE, 0.0);
     scene.set_background_from_path("assets/images/backgrounds/forest2.jpg");
 
-    let image = render(scene, image(1920, 1080), camera([0.0, 200.0, -400.0], [0.0, 0.0, 0.0]));
+    let image = render(scene, image(1920, 1080), camera([0.0, 200.0, 400.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/many_balls");
 }
