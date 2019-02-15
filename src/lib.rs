@@ -11,7 +11,7 @@ pub mod light;
 pub mod multithread;
 
 use std::sync::{mpsc};
-use image::{RgbImage, Rgb, ImageBuffer};
+use image::{RgbImage, ImageBuffer};
 use euler::*;
 pub use color::*;
 pub use scene::*;
@@ -20,6 +20,8 @@ pub use shader::*;
 pub use primitive::*;
 pub use light::*;
 pub use multithread::*;
+
+const AA_THRESHOLD: f64 = 0.08;
 
 #[derive(Clone, Copy)]
 pub struct ImageDimension {
@@ -63,7 +65,9 @@ pub fn render(scene: Scene,
             image_dimension: ImageDimension,
             camera_config: CameraConfig) -> RgbImage {
 
-    let aspect_ratio = image_dimension.width as f64 / image_dimension.height as f64;
+    let width = image_dimension.width;
+    let height = image_dimension.height;
+    let aspect_ratio = width as f64 / height as f64;
     let fov_factor = (camera_config.fov_y.to_radians()/2.0).tan();
     let x_factor = aspect_ratio * fov_factor;
 
@@ -81,17 +85,17 @@ pub fn render(scene: Scene,
     let thread_pool = ThreadPool::new(NUM_THREADS);
     let (sender, receiver) = mpsc::channel::<(u32, Vec<Color>)>();
 
-    let lines_per_chunk = (image_dimension.height as f32 / NUM_THREADS as f32).ceil() as u32;
+    let lines_per_chunk = (height as f32 / NUM_THREADS as f32).ceil() as u32;
     for chunk in 0..NUM_THREADS as u32 {
         let thread_sender = sender.clone();
         let thread_scene = scene.clone();
         thread_pool.execute(move || {
-            let mut image_line: Vec<Color> = Vec::with_capacity((image_dimension.width * lines_per_chunk) as usize);
-            for y in chunk*lines_per_chunk..image_dimension.height.min((chunk+1)*lines_per_chunk) {
-                for x in 0..image_dimension.width {
+            let mut image_line: Vec<Color> = Vec::with_capacity((width * lines_per_chunk) as usize);
+            for y in chunk*lines_per_chunk..height.min((chunk+1)*lines_per_chunk) {
+                for x in 0..width {
                     let pixel_location = camera_to_world_mat *
-                                            dvec4!((2.0 * ((x as f64 + 0.5)/image_dimension.width as f64) - 1.0) * x_factor,
-                                                (1.0 - 2.0 * (y as f64 + 0.5)/image_dimension.height as f64) * fov_factor, 
+                                            dvec4!((2.0 * ((x as f64 + 0.5)/width as f64) - 1.0) * x_factor,
+                                                (1.0 - 2.0 * (y as f64 + 0.5)/height as f64) * fov_factor, 
                                                     1, 
                                                     1);
                     
@@ -117,28 +121,60 @@ pub fn render(scene: Scene,
         //}
     }
 
-    let mut color_vec: Vec<Color> = Vec::with_capacity(image_dimension.area() as usize);
+    let mut color_vec: Vec<Color> = Vec::with_capacity((width * height) as usize);
     for chunk in collected_chunks.iter_mut() {
         color_vec.append(chunk);
     }
 
-    let rgb_vec: Vec<u8> = color_vec.into_iter().map(|x| x.clamp().to_rgb()).map(|x| vec!(x.data[0], x.data[1], x.data[2]).into_iter()).flatten().collect();
-
-    let image: Option<RgbImage> = ImageBuffer::from_vec(image_dimension.width, image_dimension.height, rgb_vec);
-
     // ANTI ALIASING
-    for y in 1..image_dimension.height-1 {
-        for x in 1..image_dimension.width-1 {
+    let mut aa_corrections: Vec<(usize, Color)> = Vec::new();
+    for y in 1..height-1 {
+        for x in 1..width-1 {
+            let color_i = (y*width+x) as usize;
+            if color_vec[color_i].diff(color_vec[color_i -width as usize -1]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
+            if color_vec[color_i].diff(color_vec[color_i -width as usize]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
+            if color_vec[color_i].diff(color_vec[color_i -width as usize +1]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
+            if color_vec[color_i].diff(color_vec[color_i -1]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
+            if color_vec[color_i].diff(color_vec[color_i +1]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
+            if color_vec[color_i].diff(color_vec[color_i +width as usize -1]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
+            if color_vec[color_i].diff(color_vec[color_i +width as usize]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
+            if color_vec[color_i].diff(color_vec[color_i +width as usize +1]) > AA_THRESHOLD {
+                aa_corrections.push((color_i, Color::HOT_PINK));
+            }
         }
     }
 
+    for correction in aa_corrections.iter() {
+        color_vec[correction.0] = correction.1;
+    }
+
+    make_image(image_dimension.width, image_dimension.height, color_vec)
+}
+
+fn make_image(width: u32, height: u32, colors: Vec<Color>) -> RgbImage {
+    let rgb_vec: Vec<u8> = colors.into_iter().map(|x| x.clamp().to_rgb()).map(|x| vec!(x.data[0], x.data[1], x.data[2]).into_iter()).flatten().collect();
+    let image: Option<RgbImage> = ImageBuffer::from_vec(width, height, rgb_vec);
     if let Some(image) = image {
         image
     }
     else {
         panic!("Could not convert rgb_vec into image");
     }
-}
+} 
 
 pub fn cast_anti_alias_ray(scene: &Scene, ray: Ray) -> Color {
     scene.cast_ray(ray)
