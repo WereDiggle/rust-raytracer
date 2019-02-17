@@ -108,21 +108,21 @@ impl Shadable for PhongShader {
 
             let mut light_through = Color::WHITE;
             let mut shadow_intersects = scene.root.total_trace_until_distance(shadow_ray, light_distance);
-            shadow_intersects.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
+            shadow_intersects.sort_by(|a, b| a.get_distance().partial_cmp(&b.get_distance()).unwrap());
 
             let mut shadow_map: HashMap<ProcessUniqueId, (Color, Vec<(Hit, f64)>) > = HashMap::new();
 
             for shadow_intersect in shadow_intersects {
                 shadow_map.entry(shadow_intersect.hit_id).or_insert((shadow_intersect.shader.get_opacity(), Vec::new()));
                 if let Some((_, vec)) = shadow_map.get_mut(&shadow_intersect.hit_id) {
-                    let dot = shadow_intersect.surface_normal.dot(shadow_intersect.ray.direction);
+                    let dot = shadow_intersect.get_surface_normal().dot(shadow_intersect.get_ray().direction);
                     let (hit_type, mut last_hit_type) = if dot < 0.0 {(Hit::Enter, Hit::Exit)} else {(Hit::Exit, Hit::Enter)}; 
                     if let Some(prev) = vec.last() {
                         last_hit_type = prev.0;
                     }
 
                     if hit_type != last_hit_type {
-                        vec.push((hit_type, shadow_intersect.distance)); 
+                        vec.push((hit_type, shadow_intersect.get_distance())); 
                     }
                 }
             }
@@ -195,6 +195,7 @@ impl Shadable for ReflectionShader {
 
 #[derive(Clone)]
 pub struct TranslucentShader {
+    // TODO: separate translucency and color
     translucency: Color,
     refractive_index: f64,
 }

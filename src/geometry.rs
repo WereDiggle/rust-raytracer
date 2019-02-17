@@ -121,7 +121,7 @@ impl Ray {
         let refraction_factor = 1.0 - refractive_index*refractive_index * (1.0 - incident_cos*incident_cos);
 
         if refraction_factor < 0.0 {
-            self.reflect_off(hit_point, surface_normal)
+            self.reflect_off(hit_point, surface_normal * normal_sign)
         }
         else {
             let refraction_direction = refractive_index * self.direction + (refractive_index*incident_cos-refraction_factor.sqrt()) * normal_sign * surface_normal;
@@ -147,28 +147,24 @@ impl Ray {
 }
 
 #[derive(Clone, Copy)]
-pub struct Intersect<'a> {
-    pub hit_id: ProcessUniqueId,
-    pub shader: &'a (Shadable + Send + Sync + 'a),
+pub struct Intersect {
     pub ray: Ray,
     pub distance: f64, 
     pub hit_point: DVec3,
     pub surface_normal: DVec3,
 }
 
-impl<'a> Intersect<'a> {
-    pub fn new(hit_id: ProcessUniqueId, shader: &'a (Shadable + Send + Sync + 'a), ray: Ray, distance: f64, hit_point: DVec3, surface_normal: DVec3) -> Intersect<'a> {
-        Intersect {hit_id, shader, ray, distance, hit_point, surface_normal}
+impl Intersect {
+    pub fn new(ray: Ray, distance: f64, hit_point: DVec3, surface_normal: DVec3) -> Intersect {
+        Intersect{ ray, distance, hit_point, surface_normal}
     }
 
-    pub fn transform(&self, matrix: DMat4) -> Intersect<'a> {
+    pub fn transform(&self, matrix: DMat4) -> Intersect {
         let ray = self.ray.transform(matrix);
         let hit_point = matrix::transform_point(matrix, self.hit_point);
         let distance = (hit_point - ray.origin).length();
         let surface_normal = matrix::transform_normal(matrix, self.surface_normal);
         Intersect {
-            hit_id: self.hit_id,
-            shader: self.shader,
             ray,
             distance,
             hit_point,
@@ -177,13 +173,53 @@ impl<'a> Intersect<'a> {
     }
 }
 
+
+#[derive(Clone, Copy)]
+pub struct NodeIntersect<'a> {
+    pub hit_id: ProcessUniqueId,
+    pub shader: &'a (Shadable + Send + Sync + 'a),
+    pub intersect: Intersect,
+}
+
+impl<'a> NodeIntersect<'a> {
+    pub fn new(hit_id: ProcessUniqueId, shader: &'a (Shadable + Send + Sync + 'a), intersect: Intersect) -> NodeIntersect<'a> {
+        NodeIntersect {hit_id, shader, intersect}
+    }
+
+    pub fn transform(&self, matrix: DMat4) -> NodeIntersect<'a> {
+        NodeIntersect {
+            hit_id: self.hit_id,
+            shader: self.shader,
+            intersect: self.intersect.transform(matrix),
+        }
+    }
+
+    pub fn get_distance(&self) -> f64 {
+        self.intersect.distance
+    }
+
+    pub fn get_hit_point(&self) -> DVec3 {
+        self.intersect.hit_point
+    }
+
+    pub fn get_surface_normal(&self) -> DVec3 {
+        self.intersect.surface_normal
+    }
+
+    pub fn get_ray(&self) -> Ray {
+        self.intersect.ray
+    }
+}
+
 pub trait Intersectable: IntersectableClone {
-    fn check_intersect(&self, ray: Ray) -> Option<f64>;
+    fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect>;
 
     // hit_point needs to be in model space
     fn surface_normal(&self, hit_point: DVec3) -> DVec3;
 
     //fn surface_coords(&self, hit_point: DVec4) -> DVec2;
+
+    fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect>;
 }
 
 pub trait IntersectableClone {

@@ -154,3 +154,20 @@ fn many_balls() {
     let image = render(scene, image(1920, 1080), camera([0.0, 200.0, 400.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/many_balls");
 }
+
+#[test]
+fn translucent_shadow() {
+    for i in 9..10 {
+        let mut scene = Scene::new();
+        let sphere1 = create_translucent_cube(160.0, translation(0.0, 100.0, 0.0) * scaling(1.0, 1.0, 1.0/160.0 * i as f64), Color::WHITE - Color::LIGHT_BLACK, 1.52);
+        let floor = create_floor(600.0, Color::WHITE);
+        scene.root.add_child(Box::new(sphere1));
+        scene.root.add_child(Box::new(floor));
+
+        scene.add_light(Box::new(PointLight::new(dvec3!(-100.0, 300.0, -300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI))));
+        scene.set_background_from_path("assets/images/backgrounds/forest2.jpg");
+
+        let image = render(scene, image(1920, 1080), camera([0.0, 200.0, 400.0], [0.0, 0.0, 0.0]));
+        write_to_png( image, &format!("output/translucent_shadow_{:02}", i));
+    }
+}

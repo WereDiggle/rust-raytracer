@@ -133,6 +133,7 @@ impl Color {
     pub const SNOW: Color = Color { red: 0.996094, green: 0.976562, blue: 0.976562};
     pub const BLACK: Color = Color { red: 0.000000, green: 0.000000, blue: 0.000000};
     pub const ALMOST_BLACK: Color = Color { red: 0.004000, green: 0.004000, blue: 0.004000};
+    pub const LIGHT_BLACK: Color = Color { red: 0.1, green: 0.1, blue: 0.1};
     pub const DIM_GRAY: Color = Color { red: 0.410156, green: 0.410156, blue: 0.410156};
     pub const GRAY: Color = Color { red: 0.500000, green: 0.500000, blue: 0.500000};
     pub const DARK_GRAY: Color = Color { red: 0.660156, green: 0.660156, blue: 0.660156};

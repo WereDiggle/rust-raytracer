@@ -157,10 +157,10 @@ pub fn render_with_config(  scene: Scene,
         let mut aa_corrections: Vec<(u32, u32)> = Vec::new();
         for y in 1..height-1 {
             for x in 1..width-1 {
-                let color_i = (y*width+x) as usize;
-                let color = color_vec[color_i];
+                let color_i = (y*width+x) as i64;
+                let color = color_vec[color_i as usize];
                 for direc in eight_directions.iter() {
-                    if color.diff(color_vec[color_i +(direc.0*width as i64) as usize -direc.1 as usize]) > render_config.aa_threshold {
+                    if color.diff(color_vec[(color_i + direc.0*width as i64 + direc.1) as usize]) > render_config.aa_threshold {
                         aa_corrections.push((x, y));
                         break;
                     }

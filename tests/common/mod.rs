@@ -97,6 +97,14 @@ pub fn create_cube(size: f64, transform: DMat4, color: Color) -> SceneNode {
     sphere
 }
 
+pub fn create_translucent_cube(size: f64, transform: DMat4, color: Color, refractive_index: f64) -> SceneNode {
+    let mut sphere = SceneNode::new();
+    sphere.set_primitive(Box::new(Cube::new(size)));
+    sphere.set_material(Box::new(TranslucentShader::new(color*1.0, refractive_index)));
+    sphere.set_transform(transform);
+    sphere
+}
+
 pub fn create_translucent_sphere(size: f64, transform: DMat4, color: Color, refractive_index: f64) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
@@ -129,7 +137,7 @@ pub fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNod
 
 pub fn create_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
     let mut sphere = SceneNode::new();
-    sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
+    sphere.set_primitive(Box::new(Sphere::new(size)));
     sphere.set_material(Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0)));
     sphere.set_transform(transform);
     sphere
