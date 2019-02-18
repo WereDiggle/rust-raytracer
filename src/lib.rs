@@ -9,6 +9,7 @@ pub mod shader;
 pub mod primitive;
 pub mod light;
 pub mod multithread;
+pub mod progress_tracker;
 
 use std::sync::{mpsc};
 use image::{RgbImage, ImageBuffer};
@@ -20,6 +21,7 @@ pub use shader::*;
 pub use primitive::*;
 pub use light::*;
 pub use multithread::*;
+pub use progress_tracker::*;
 
 const AA_THRESHOLD: f64 = 0.08;
 const NUM_THREADS: usize = 8;
@@ -113,13 +115,14 @@ pub fn render_with_config(  scene: Scene,
                                       1, 
                                       1)).xyz()
     };
-
     let thread_pool = ThreadPool::new(render_config.num_threads);
     let (sender, receiver) = mpsc::channel::<(u32, Vec<Color>)>();
+    let progress_tracker = ProgressTracker::new(image_dimension);
 
-    let lines_per_chunk = (height as f32 / render_config.num_threads as f32).ceil() as u32;
+    let lines_per_chunk = divide_round_up(height, render_config.num_threads as u32);
     for chunk in 0..render_config.num_threads as u32 {
         let thread_sender = sender.clone();
+        let thread_progress_sender = progress_tracker.get_sender();
         let thread_scene = scene.clone();
         thread_pool.execute(move || {
             let mut image_line: Vec<Color> = Vec::with_capacity((width * lines_per_chunk) as usize);
@@ -134,6 +137,7 @@ pub fn render_with_config(  scene: Scene,
 
                     image_line.push(color);
                 }
+                thread_progress_sender.send(ProgressMessage::Progress(width)).unwrap();
             }
             thread_sender.send((chunk, image_line)).unwrap();
         });
@@ -151,13 +155,17 @@ pub fn render_with_config(  scene: Scene,
         color_vec.append(chunk);
     }
 
+    let color_index = |x: u32, y: u32| -> usize {
+        (y*width + x) as usize
+    };
+
     // ANTI ALIASING
     if render_config.anti_alias {
         let eight_directions: [(i64, i64); 8] = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1,-1), (1,0), (1,1)];
         let mut aa_corrections: Vec<(u32, u32)> = Vec::new();
         for y in 1..height-1 {
             for x in 1..width-1 {
-                let color_i = (y*width+x) as i64;
+                let color_i = color_index(x, y) as i64;
                 let color = color_vec[color_i as usize];
                 for direc in eight_directions.iter() {
                     if color.diff(color_vec[(color_i + direc.0*width as i64 + direc.1) as usize]) > render_config.aa_threshold {
@@ -168,6 +176,61 @@ pub fn render_with_config(  scene: Scene,
             }
         }
 
+        let (sender, receiver) = mpsc::channel::<(u32, u32, Color)>();
+        let progress_sender = progress_tracker.get_sender();
+        progress_sender.send(ProgressMessage::StartAA(aa_corrections.len() as u32)).unwrap();
+
+        // TODO: multithread AA
+        let num_corrections = aa_corrections.len();
+        let corrections_per_thread = divide_round_up(aa_corrections.len() as u32, render_config.num_threads as u32);
+        for _ in 0..render_config.num_threads {
+            let thread_sender = sender.clone();
+            let thread_progress_sender = progress_tracker.get_sender();
+            let thread_scene = scene.clone();
+            let mut corrections: Vec<(u32, u32, Color)> = Vec::new();
+            for _ in 0..corrections_per_thread {
+                if let Some(correction) = aa_corrections.pop() {
+                    let x = correction.0;
+                    let y = correction.1;
+                    let color_i = color_index(x, y);
+                    corrections.push((x, y, color_vec[color_i]));
+                }
+                else {
+                    break;
+                }
+            }
+            thread_pool.execute(move || {
+                for correction in corrections.into_iter() {
+                    let x = correction.0;
+                    let y = correction.1;
+                    let mut correction_colors: Vec<Color> = Vec::with_capacity(9);
+                    correction_colors.push(correction.2);
+                    for correction_dir in eight_directions.iter() {
+                        let corr_x = correction_dir.0 as f64;
+                        let corr_y = correction_dir.1 as f64;
+
+                        let pixel_location = calculate_pixel_location(x as f64 + 0.5 + (corr_x * 0.4), y as f64 + 0.5 + (corr_y * 0.4));
+                        let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
+
+                        correction_colors.push(thread_scene.cast_ray(prime_ray));
+                    }
+                    let mut total_color = Color::BLACK;
+                    let num_colors = correction_colors.len();
+                    for color in correction_colors.into_iter() {
+                        total_color += color;
+                    }
+
+                    thread_sender.send((x, y, total_color / num_colors as f64)).unwrap();
+                    thread_progress_sender.send(ProgressMessage::AAProgress(1)).unwrap();
+                }
+            });
+        }
+
+        for _ in 0..num_corrections {
+            let (x, y, color) = receiver.recv().unwrap();
+            color_vec[color_index(x, y)] = color;
+        }
+        /*
         for correction in aa_corrections.iter() {
             let x = correction.0;
             let y = correction.1;
@@ -189,10 +252,16 @@ pub fn render_with_config(  scene: Scene,
                 total_color += color;
             }
             color_vec[color_i] = total_color / num_colors as f64;
+            progress_sender.send(ProgressMessage::AAProgress(1)).unwrap();
         }
+        */
     }
 
     make_image(image_dimension.width, image_dimension.height, color_vec)
+}
+
+fn divide_round_up(a: u32, b:u32) -> u32 {
+    (a as f32 / b as f32).ceil() as u32
 }
 
 fn make_image(width: u32, height: u32, colors: Vec<Color>) -> RgbImage {
