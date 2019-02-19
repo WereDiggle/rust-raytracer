@@ -21,6 +21,7 @@ pub use light::*;
 pub use progress_tracker::*;
 pub use render::*;
 
+// TODO: make this more robust, so it creates directories as well
 pub fn write_to_png(img: RgbImage, file_name: &str) {
     match img.save(format!("{}.png", file_name)) {
         Ok(_) => println!("save successful"),
