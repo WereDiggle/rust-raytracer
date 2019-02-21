@@ -47,8 +47,8 @@ fn many_weirds() {
 
     scene.add_light(Box::new(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI))));
     scene.ambient_light = AmbientLight::new(Color::WHITE, 0.0);
-    //scene.set_background_from_path("assets/images/backgrounds/forest2.jpg");
+    scene.set_background_from_path("assets/images/backgrounds/forest2.jpg");
 
-    let image = render(scene, image(1280, 720), camera([0.0, 400.0, 400.0], [0.0, 0.0, 0.0]));
+    let image = render(scene, image(1920, 1080), camera([0.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/many_weirds");
 }

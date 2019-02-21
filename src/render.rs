@@ -121,7 +121,7 @@ pub fn render_with_config(  scene: Scene,
 
     // Initialization of Thread Resources
     let thread_pool = ThreadPool::new(render_config.num_threads);
-    let (sender, receiver) = mpsc::channel::<(u32, Vec<Color>)>();
+    let (sender, receiver) = mpsc::channel::<(u32, Vec<(f64, Color)>)>();
     let progress_tracker = ProgressTracker::new(image_dimension);
 
     // Divide work into horizontal chunks of the image
@@ -135,15 +135,15 @@ pub fn render_with_config(  scene: Scene,
 
         // Each thread will run in its own little closure
         thread_pool.execute(move || {
-            let mut image_chunk: Vec<Color> = Vec::with_capacity((width * lines_per_chunk) as usize);
+            let mut image_chunk: Vec<(f64, Color)> = Vec::with_capacity((width * lines_per_chunk) as usize);
             for y in chunk*lines_per_chunk..height.min((chunk+1)*lines_per_chunk) {
                 for x in 0..width {
 
                     // The actual work of ray tracing
                     let pixel_location = calculate_pixel_location(x as f64 + 0.5, y as f64 + 0.5);
                     let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
-                    let color = thread_scene.cast_ray(prime_ray);
-                    image_chunk.push(color);
+                    let (distance, color) = thread_scene.cast_ray_get_distance(prime_ray);
+                    image_chunk.push((distance, color));
                 }
 
                 // Only send progress after every line to not overload progress tracker
@@ -154,14 +154,14 @@ pub fn render_with_config(  scene: Scene,
     }
 
     // Collect completed work from worker threads
-    let mut collected_chunks: Vec<Vec<Color>> = vec![Vec::new(); render_config.num_threads];
+    let mut collected_chunks: Vec<Vec<(f64, Color)>> = vec![Vec::new(); render_config.num_threads];
     for _ in 0..render_config.num_threads {
         let (i, line_colors) = receiver.recv().unwrap();
         collected_chunks[i as usize] = line_colors;
     }
 
-    // Put into a single Vector<Color>
-    let mut color_vec: Vec<Color> = Vec::with_capacity((width * height) as usize);
+    // put into a single vec
+    let mut color_vec: Vec<(f64, Color)> = Vec::with_capacity((width * height) as usize);
     for chunk in collected_chunks.iter_mut() {
         color_vec.append(chunk);
     }
@@ -183,7 +183,8 @@ pub fn render_with_config(  scene: Scene,
 
                 // Check all eight neighbours of a pixel to see if it needs anti-aliasing
                 for direc in eight_directions.iter() {
-                    if color.diff(color_vec[(color_i + direc.0*width as i64 + direc.1) as usize]) > render_config.aa_threshold {
+                    if color.1.diff(color_vec[(color_i + direc.0*width as i64 + direc.1) as usize].1) > render_config.aa_threshold  &&
+                       color.0 < std::f64::INFINITY {
                         aa_corrections.push((x, y));
                         break;
                     }
@@ -206,13 +207,14 @@ pub fn render_with_config(  scene: Scene,
             let thread_scene = scene.clone();
 
             // Each thread gets its own list of anti-aliasing corrections to complete
-            let mut corrections: Vec<(u32, u32, Color)> = Vec::new();
+            let mut corrections: Vec<(u32, u32, f64, Color)> = Vec::new();
             for _ in 0..corrections_per_thread {
                 if let Some(correction) = aa_corrections.pop() {
                     let x = correction.0;
                     let y = correction.1;
                     let color_i = color_index(x, y);
-                    corrections.push((x, y, color_vec[color_i]));
+                    let (distance, color) = color_vec[color_i];
+                    corrections.push((x, y, distance, color));
                 }
                 else {
                     break;
@@ -224,7 +226,7 @@ pub fn render_with_config(  scene: Scene,
                     let x = correction.0;
                     let y = correction.1;
                     let mut correction_colors: Vec<Color> = Vec::with_capacity(9);
-                    correction_colors.push(correction.2);
+                    correction_colors.push(correction.3);
                     for correction_dir in eight_directions.iter() {
                         let corr_x = correction_dir.0 as f64;
                         let corr_y = correction_dir.1 as f64;
@@ -233,7 +235,12 @@ pub fn render_with_config(  scene: Scene,
                         let pixel_location = calculate_pixel_location(x as f64 + 0.5 + (corr_x * 0.4), y as f64 + 0.5 + (corr_y * 0.4));
                         let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
 
-                        correction_colors.push(thread_scene.cast_ray(prime_ray));
+                        if correction.2 != std::f64::INFINITY {
+                            correction_colors.push(thread_scene.cast_ray(prime_ray));
+                        }
+                        else {
+                            correction_colors.push(thread_scene.get_background_color(prime_ray));
+                        }
                     }
                     let mut total_color = Color::BLACK;
                     let num_colors = correction_colors.len();
@@ -250,12 +257,12 @@ pub fn render_with_config(  scene: Scene,
         // Collect the completed anti-aliasing work from worker threads
         for _ in 0..num_corrections {
             let (x, y, color) = receiver.recv().unwrap();
-            color_vec[color_index(x, y)] = color;
+            color_vec[color_index(x, y)] = (0.0, color);
         }
     }
 
     // Shove all those colors into an RgbImage
-    make_image(image_dimension.width, image_dimension.height, color_vec)
+    make_image(image_dimension.width, image_dimension.height, color_vec.into_iter().map(|x| x.1).collect())
 }
 
 // integer division, but it rounds up

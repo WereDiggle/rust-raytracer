@@ -6,6 +6,7 @@ use shader::{Shadable, PhongShader};
 use snowflake::ProcessUniqueId;
 use image::{RgbImage, ImageBuffer};
 use std::f64::consts::PI;
+use std::f64;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -39,7 +40,7 @@ impl Scene {
                         node_intersect.shader.get_color(self, ray, node_intersect.get_hit_point(), node_intersect.get_surface_normal()));
             }
         }
-        (0.0, self.get_background_color(ray))
+        (f64::INFINITY, self.get_background_color(ray))
     }
 
     pub fn add_light(&mut self, light: Box<Lightable + Send + Sync>) {
@@ -50,7 +51,7 @@ impl Scene {
         self.background = Arc::new(image::open(file_path).unwrap().to_rgb());
     }
 
-    fn get_background_color(&self, ray: Ray) -> Color {
+    pub fn get_background_color(&self, ray: Ray) -> Color {
         let azimuth = ray.direction.z.atan2(ray.direction.x);
         let elevation = ray.direction.y.asin();
 

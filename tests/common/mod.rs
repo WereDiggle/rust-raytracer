@@ -145,10 +145,16 @@ pub fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNod
 pub fn create_weird(size: f64, offset: f64) -> Box<SubtractShape> {
     let sphere1 = Box::new(Sphere::new(size));
     let sphere2 = Box::new(Sphere::new(size));
+    let sphere3 = Box::new(Sphere::new(size));
+    let sphere4 = Box::new(Sphere::new(size));
 
     let sphere1 = Box::new(BaseShape::new(DMat4::identity(), sphere1));
     let sphere2 = Box::new(BaseShape::new(translation(0.0, offset, 0.0), sphere2));
-    Box::new(SubtractShape::new(sphere1, sphere2))
+    let sphere3 = Box::new(BaseShape::new(translation(0.0, 0.0, offset), sphere3));
+    let sphere4 = Box::new(BaseShape::new(translation(offset, 0.0, 0.0), sphere4));
+    let sphere1 = Box::new(SubtractShape::new(sphere1, sphere2));
+    let sphere1 = Box::new(SubtractShape::new(sphere1, sphere3));
+    Box::new(SubtractShape::new(sphere1, sphere4))
 }
 
 pub fn create_comp_weird(size: f64, transform: DMat4, color: Color) -> SceneNode {
