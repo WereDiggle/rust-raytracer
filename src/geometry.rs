@@ -1,6 +1,6 @@
 use euler::{dmat4, DMat4, DVec3, dvec4};
 use shader::Shadable;
-use scene::Transformable;
+use scene::Traceable;
 use snowflake::ProcessUniqueId;
 
 pub mod matrix {
@@ -17,8 +17,11 @@ pub mod matrix {
     }
 
     pub fn transform_normal(matrix: DMat4, normal: DVec3) -> DVec3 {
-        // TODO: maybe there's a way to use the stored inverse matrix instead of calculating it
         (matrix.inverse().transpose() * dvec4!(normal, 0.0)).xyz().normalize()
+    }
+
+    pub fn transform_normal_with_inverse(inv_matrix: DMat4, normal: DVec3) -> DVec3 {
+        (inv_matrix.transpose() * dvec4!(normal, 0.0)).xyz().normalize()
     }
 
     pub fn rotation(axis: Axis, degree: f64) -> DMat4 {
@@ -171,8 +174,16 @@ impl Intersect {
             surface_normal,
         }
     }
-}
 
+    pub fn invert_normal(&self) -> Intersect {
+        Intersect {
+            ray: self.ray,
+            distance: self.distance,
+            hit_point: self.hit_point,
+            surface_normal: self.surface_normal * -1.0,
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct NodeIntersect<'a> {
@@ -215,7 +226,7 @@ pub trait Intersectable: IntersectableClone {
     fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect>;
 
     // hit_point needs to be in model space
-    fn surface_normal(&self, hit_point: DVec3) -> DVec3;
+    //fn surface_normal(&self, hit_point: DVec3) -> DVec3;
 
     //fn surface_coords(&self, hit_point: DVec4) -> DVec2;
 
@@ -238,5 +249,66 @@ where
 impl Clone for Box<Intersectable + Send + Sync> {
     fn clone(&self) -> Box<Intersectable + Send + Sync> {
         self.clone_box()
+    }
+}
+
+pub trait Transformable: TransformableClone {
+
+    fn set_transform(&mut self, trans: DMat4);
+    fn get_transform(&self) -> DMat4;
+    fn get_inverse_transform(&self) -> DMat4;
+
+    fn transform(&mut self, trans: DMat4) {
+        let matrix = self.get_transform();
+        self.set_transform(trans * matrix);
+    }
+
+}
+
+pub trait TransformableClone {
+    fn clone_box(&self) -> Box<Transformable + Send + Sync>;
+}
+
+impl<T> TransformableClone for T
+where
+    T: 'static + Transformable + Send + Sync + Clone
+{
+    fn clone_box(&self) -> Box<Transformable + Send + Sync> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<Transformable + Send + Sync> {
+    fn clone(&self) -> Box<Transformable + Send + Sync> {
+        self.clone_box()
+    }
+}
+
+#[derive(Clone)]
+pub struct TransformComponent {
+    trans: DMat4,
+    inv_trans: DMat4,
+}
+
+impl TransformComponent {
+
+    pub fn new(trans: DMat4) -> TransformComponent {
+        TransformComponent{trans, inv_trans: trans.inverse()}
+    }
+}
+
+impl Transformable for TransformComponent {
+
+    fn set_transform(&mut self, trans: DMat4) {
+        self.trans = trans;
+        self.inv_trans = trans.inverse();
+    }
+
+    fn get_transform(&self) -> DMat4 {
+        self.trans
+    }
+
+    fn get_inverse_transform(&self) -> DMat4 {
+        self.inv_trans
     }
 }

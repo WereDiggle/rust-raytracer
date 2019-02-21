@@ -17,6 +17,13 @@ pub fn camera(origin: [f64; 3], target: [f64; 3]) -> CameraConfig {
     CameraConfig { origin: dvec3!(origin), target: dvec3!(target), up: dvec3!(0.0, 1.0, 0.0), fov_y: 90.0}
 }
 
+pub fn basic_diffuse(color: Color) -> Box<PhongShader> {
+    return Box::new(PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0));
+}
+
+pub fn slightly_shiney(color: Color) -> Box<PhongShader> {
+    return Box::new(PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0));
+}
 
 pub fn create_wall(size: f64, color: Color, transform: DMat4) -> SceneNode {
     let mut wall = SceneNode::new();
@@ -133,6 +140,29 @@ pub fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNod
     sphere.set_material(comp);
     sphere.set_transform(transform);
     sphere
+}
+
+pub fn create_weird(size: f64, offset: f64) -> Box<SubtractShape> {
+    let sphere1 = Box::new(Sphere::new(size));
+    let sphere2 = Box::new(Sphere::new(size));
+
+    let sphere1 = Box::new(BaseShape::new(DMat4::identity(), sphere1));
+    let sphere2 = Box::new(BaseShape::new(translation(0.0, offset, 0.0), sphere2));
+    Box::new(SubtractShape::new(sphere1, sphere2))
+}
+
+pub fn create_comp_weird(size: f64, transform: DMat4, color: Color) -> SceneNode {
+    let mut weird = SceneNode::new();
+    weird.set_primitive(create_weird(size, size));
+    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
+    //let glass = Box::new(TranslucentShader::new(Color::WHITE, 1.52));
+    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
+    let mut comp = Box::new(CompositeShader::new());
+    comp.add_shader(0.8, phong);
+    comp.add_shader(0.2, reflect);
+    weird.set_material(comp);
+    weird.set_transform(transform);
+    weird
 }
 
 pub fn create_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {

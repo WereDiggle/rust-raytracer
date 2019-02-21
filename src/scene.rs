@@ -1,7 +1,7 @@
 use euler::DMat4;
 use color::Color;
 use light::{Lightable, AmbientLight};
-use geometry::{matrix, NodeIntersect, Intersect, Intersectable, Ray};
+use geometry::{matrix, NodeIntersect, Intersectable, Transformable, TransformComponent, Ray};
 use shader::{Shadable, PhongShader};
 use snowflake::ProcessUniqueId;
 use image::{RgbImage, ImageBuffer};
@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Scene {
-    pub root: Box<Transformable + Send + Sync>,
+    pub root: Box<Traceable + Send + Sync>,
     pub lights: Vec<Box<Lightable + Send + Sync>>,
     pub ambient_light: AmbientLight,
     pub background: Arc<RgbImage>,
@@ -73,17 +73,10 @@ impl Scene {
     }
 }
 
-pub trait Transformable: TransformableClone {
+pub trait Traceable: TraceableClone {
     fn get_id(&self) -> ProcessUniqueId;
-    fn set_transform(&mut self, trans: DMat4);
-    fn get_transform(&self) -> DMat4;
-    fn transform(&mut self, trans: DMat4) {
-        let matrix = self.get_transform();
-        self.set_transform(trans * matrix);
-    }
-    fn get_inverse_transform(&self) -> DMat4;
-    fn add_child(&mut self, child: Box<Transformable + Send + Sync>);
-    fn add_children(&mut self, children: Vec<Box<Transformable + Send + Sync>>) {
+    fn add_child(&mut self, child: Box<Traceable + Send + Sync>);
+    fn add_children(&mut self, children: Vec<Box<Traceable + Send + Sync>>) {
         for child in children {
             self.add_child(child);
         }
@@ -93,21 +86,21 @@ pub trait Transformable: TransformableClone {
     fn total_trace_until_distance(&self, ray: Ray, max_distance: f64) -> Vec<NodeIntersect>;
 }
 
-pub trait TransformableClone {
-    fn clone_box(&self) -> Box<Transformable + Send + Sync>;
+pub trait TraceableClone {
+    fn clone_box(&self) -> Box<Traceable + Send + Sync>;
 }
 
-impl<T> TransformableClone for T
+impl<T> TraceableClone for T
 where
-    T: 'static + Transformable + Send + Sync + Clone
+    T: 'static + Traceable + Send + Sync + Clone
 {
-    fn clone_box(&self) -> Box<Transformable + Send + Sync> {
+    fn clone_box(&self) -> Box<Traceable + Send + Sync> {
         Box::new(self.clone())
     }
 }
 
-impl Clone for Box<Transformable + Send + Sync> {
-    fn clone(&self) -> Box<Transformable + Send + Sync> {
+impl Clone for Box<Traceable + Send + Sync> {
+    fn clone(&self) -> Box<Traceable + Send + Sync> {
         self.clone_box()
     }
 }
@@ -117,9 +110,8 @@ pub struct SceneNode {
     id: ProcessUniqueId,
     primitive: Option<Box<Intersectable + Send + Sync>>,
     material: Box<Shadable + Send + Sync>,
-    trans: DMat4,
-    inv_trans: DMat4,   // Do inverse calculations only once
-    children: Vec<Box<Transformable + Send + Sync>>,
+    transform: TransformComponent,
+    children: Vec<Box<Traceable + Send + Sync>>,
 }
 
 impl SceneNode {
@@ -130,8 +122,7 @@ impl SceneNode {
             id: ProcessUniqueId::new(),
             primitive: None, 
             material: Box::new(default_shader),
-            trans: DMat4::identity(), 
-            inv_trans: DMat4::identity(), 
+            transform: TransformComponent::new(DMat4::identity()),
             children: Vec::new()
         }
     }
@@ -146,30 +137,32 @@ impl SceneNode {
 }
 
 impl Transformable for SceneNode {
+
+    fn set_transform(&mut self, trans: DMat4) {
+        self.transform.set_transform(trans);
+    }
+
+    fn get_transform(&self) -> DMat4 {
+        self.transform.get_transform()
+    }
+
+    fn get_inverse_transform(&self) -> DMat4 {
+        self.transform.get_inverse_transform()
+    }
+}
+
+impl Traceable for SceneNode {
     fn get_id(&self) -> ProcessUniqueId {
         self.id
     }
 
-    fn set_transform(&mut self, trans: DMat4) {
-        self.trans = trans;
-        self.inv_trans = trans.inverse();
-    }
-
-    fn get_transform(&self) -> DMat4 {
-        self.trans
-    }
-
-    fn get_inverse_transform(&self) -> DMat4 {
-        self.inv_trans
-    }
-
-    fn add_child(&mut self, child: Box<Transformable + Send + Sync>) {
+    fn add_child(&mut self, child: Box<Traceable + Send + Sync>) {
         self.children.push(child);
     }
 
     fn trace(&self, ray: Ray) -> Option<NodeIntersect> {
         let mut final_node_intersect: Option<NodeIntersect> = None; 
-        let ray = ray.transform(self.inv_trans);
+        let ray = ray.transform(self.transform.get_inverse_transform());
 
         if let Some(ref primitive) = self.primitive {
             if let Some(intersect) = primitive.get_closest_intersect(ray) {
@@ -191,7 +184,7 @@ impl Transformable for SceneNode {
         }
 
         if let Some(intersect) = final_node_intersect {
-            Some(intersect.transform(self.trans))
+            Some(intersect.transform(self.transform.get_transform()))
         }
         else {
             None
@@ -199,14 +192,14 @@ impl Transformable for SceneNode {
     }
 
     fn partial_trace_until_distance(&self, ray: Ray, max_distance: f64) -> Option<NodeIntersect> {
-        let max_distance_point = matrix::transform_point(self.inv_trans, ray.point_at_distance(max_distance));
-        let ray = ray.transform(self.inv_trans);
+        let max_distance_point = matrix::transform_point(self.transform.get_inverse_transform(), ray.point_at_distance(max_distance));
+        let ray = ray.transform(self.transform.get_inverse_transform());
         let max_distance = (ray.origin - max_distance_point).length();
 
         if let Some(ref primitive) = self.primitive {
             if let Some(intersect) = primitive.get_closest_intersect(ray) {
                 if intersect.distance <= max_distance {
-                    return Some(NodeIntersect::new(self.id, &(*self.material), intersect).transform(self.trans));
+                    return Some(NodeIntersect::new(self.id, &(*self.material), intersect).transform(self.transform.get_transform()));
                 }
             }
         }
@@ -214,7 +207,7 @@ impl Transformable for SceneNode {
         for child in self.children.iter() {
             if let Some(mut child_node_intersect) = child.partial_trace_until_distance(ray, max_distance) {
                 if child_node_intersect.get_distance() < max_distance {
-                    return Some(child_node_intersect.transform(self.trans));
+                    return Some(child_node_intersect.transform(self.transform.get_transform()));
                 }
             }
         }
@@ -222,8 +215,8 @@ impl Transformable for SceneNode {
     }
 
     fn total_trace_until_distance(&self, ray: Ray, max_distance: f64) -> Vec<NodeIntersect> {
-        let ray = ray.transform(self.inv_trans);
-        let max_distance_point = matrix::transform_point(self.inv_trans, ray.point_at_distance(max_distance));
+        let ray = ray.transform(self.transform.get_inverse_transform());
+        let max_distance_point = matrix::transform_point(self.transform.get_inverse_transform(), ray.point_at_distance(max_distance));
         let max_distance = (ray.origin - max_distance_point).length();
 
         let mut all_intersects: Vec<NodeIntersect> = Vec::new();
@@ -238,10 +231,10 @@ impl Transformable for SceneNode {
 
         for child in self.children.iter() {
             let child_node_intersects = child.total_trace_until_distance(ray, max_distance);
-            // TODO: merge sort
+            // TODO: merge sort here instead of leaving it to the end
             all_intersects.extend(child_node_intersects);
         }
         // transform all intersects in all_intersects
-        all_intersects.iter().map(|sect| sect.transform(self.trans)).collect()
+        all_intersects.iter().map(|sect| sect.transform(self.transform.get_transform())).collect()
     }
 }

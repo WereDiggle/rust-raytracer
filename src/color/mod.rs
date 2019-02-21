@@ -3,6 +3,8 @@ use image::{Rgb};
 
 mod consts;
 
+// Color needs to be encoded and decoded
+// because most image formats don't store color linearly
 const GAMMA: f64 = 2.2;
 
 pub fn gamma_encode(linear: f64) -> f64 {
@@ -35,6 +37,8 @@ impl Color {
         (self.green - other.green).abs()
     }
 
+    // Clamps color to a displayable range
+    // Intermediate Colors might not be in this range for calculation purposes
     pub fn clamp(&self) -> Color {
         Color {
             red: self.red.min(1.0).max(0.0),
@@ -43,6 +47,7 @@ impl Color {
         }
     }
 
+    // Keep ratios the same, largest pigment becomes 1.0
     pub fn normalize(&self) -> Color {
         let max = self.red.max(self.green).max(self.blue); 
         Color {
@@ -52,6 +57,7 @@ impl Color {
         }
     }
 
+    // Convert to type used by the Image Crate to make pngs
     pub fn to_rgb(&self) -> Rgb<u8> {
         Rgb {
             data: [(gamma_encode(self.red) * 255.0) as u8,
@@ -60,6 +66,7 @@ impl Color {
         }
     }
 
+    // Convert from type used by Image Crate
     pub fn from_rgb(rgb: &Rgb<u8>) -> Color {
         Color {
             red: gamma_decode((rgb.data[0] as f64) / 255.0),
@@ -69,6 +76,7 @@ impl Color {
     }
 }
 
+// Operation traits for color
 impl Mul for Color {
     type Output = Color;
 

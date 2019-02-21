@@ -24,9 +24,11 @@ impl Intersectable for OneWay {
         None
     }
 
+/*
     fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
         self.primitive.surface_normal(hit_point)
     }
+    */
 
     fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
         let intersects = self.primitive.get_all_intersects(ray);
@@ -60,9 +62,11 @@ impl Intersectable for Inverted {
         None
     }
 
+/*
     fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
         self.primitive.surface_normal(hit_point) * -1.0
     }
+    */
 
     fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
         let mut intersects = self.primitive.get_all_intersects(ray);
@@ -102,12 +106,12 @@ impl Sphere {
 
         if t0 >= Ray::MIN_DISTANCE {
             let hit_point = ray.point_at_distance(t0);
-            intersects.0 = Some(Intersect::new(ray, t0, hit_point, self.surface_normal(hit_point)));
+            intersects.0 = Some(Intersect::new(ray, t0, hit_point, hit_point.normalize()));
         } 
 
         if t1 >= Ray::MIN_DISTANCE {
             let hit_point = ray.point_at_distance(t1);
-            intersects.1 = Some(Intersect::new(ray, t1, hit_point, self.surface_normal(hit_point)));
+            intersects.1 = Some(Intersect::new(ray, t1, hit_point, hit_point.normalize()));
         }
 
         intersects
@@ -135,9 +139,11 @@ impl Intersectable for Sphere {
         }
     }
 
+/*
     fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
         hit_point.normalize()
     }
+    */
 
     fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
         let intersects = self.two_intersects(ray);
@@ -187,9 +193,11 @@ impl Intersectable for RectangularPlane {
         }
     }
 
+/*
     fn surface_normal(&self, _: DVec3) -> DVec3 {
         dvec3!(0.0, 0.0, 1.0)
     }
+    */
 
     fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
         let mut ret_intersects: Vec<Intersect> = Vec::new(); 
@@ -256,24 +264,6 @@ impl Cube {
         }
         intersects
     }
-}
-
-impl Intersectable for Cube {
-    fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
-        self.two_intersects(ray).0
-    }
-
-    fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
-        let intersects = self.two_intersects(ray);
-        let mut ret_intersects: Vec<Intersect> = Vec::new();
-        if let Some(intersect) = intersects.0 {
-            ret_intersects.push(intersect);
-        }
-        if let Some(intersect) = intersects.1 {
-            ret_intersects.push(intersect);
-        }
-        ret_intersects
-    }
 
     fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
         let mut normal = dvec3!(0.0, 0.0, 0.0);
@@ -291,5 +281,23 @@ impl Intersectable for Cube {
         else if hit_point.z <= -max_xy { normal.z = -1.0}
 
         normal.normalize()
+    }
+}
+
+impl Intersectable for Cube {
+    fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
+        self.two_intersects(ray).0
+    }
+
+    fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
+        let intersects = self.two_intersects(ray);
+        let mut ret_intersects: Vec<Intersect> = Vec::new();
+        if let Some(intersect) = intersects.0 {
+            ret_intersects.push(intersect);
+        }
+        if let Some(intersect) = intersects.1 {
+            ret_intersects.push(intersect);
+        }
+        ret_intersects
     }
 }

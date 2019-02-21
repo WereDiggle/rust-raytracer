@@ -1,5 +1,5 @@
 use scene::Scene;
-use scene::Transformable;
+use scene::Traceable;
 use color::Color;
 use euler::DVec3;
 use geometry::Ray;

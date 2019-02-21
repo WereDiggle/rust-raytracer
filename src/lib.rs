@@ -11,6 +11,7 @@ pub mod light;
 pub mod multithread;
 pub mod progress_tracker;
 pub mod render;
+pub mod composite_shape;
 
 use image::{RgbImage};
 pub use color::*;
@@ -20,6 +21,7 @@ pub use primitive::*;
 pub use light::*;
 pub use progress_tracker::*;
 pub use render::*;
+pub use composite_shape::*;
 
 // TODO: make this more robust, so it creates directories as well
 pub fn write_to_png(img: RgbImage, file_name: &str) {
