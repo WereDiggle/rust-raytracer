@@ -31,24 +31,126 @@ fn subtract_sphere() {
     write_to_png( image, "output/subtract_shape");
 }
 
+fn light1() -> Box<PointLight> {
+    Box::new(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
+}
+
+fn light2() -> Box<PointLight> {
+    Box::new(PointLight::new(dvec3!(100.0, 300.0, -300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
+}
+
+fn no_ambient() -> AmbientLight {
+    AmbientLight::new(Color::WHITE, 0.0)
+}
+
 #[test]
 fn many_weirds() {
-    let mut scene = Scene::new();
-    let weird1 = create_comp_weird(80.0, translation(-150.0, 80.0, 40.0), Color::RED);
-    let weird2 = create_comp_weird(60.0, translation(80.0, 60.0, 0.0), Color::BLUE);
-    let weird3 = create_comp_weird(40.0, translation(50.0, 40.0, 150.0), Color::GREEN);
-    let weird4 = create_comp_weird(20.0, translation(-50.0, 20.0, 150.0), Color::PURPLE);
-    let floor = create_floor(600.0, Color::GRAY);
-    scene.root.add_child(Box::new(weird1));
-    scene.root.add_child(Box::new(weird2));
-    scene.root.add_child(Box::new(weird3));
-    scene.root.add_child(Box::new(weird4));
-    scene.root.add_child(Box::new(floor));
-
-    scene.add_light(Box::new(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI))));
-    scene.ambient_light = AmbientLight::new(Color::WHITE, 0.0);
-    scene.set_background_from_path("assets/images/backgrounds/forest2.jpg");
+    let scene = build_scene(
+        vec!(light1()),
+        no_ambient(),
+        "assets/images/backgrounds/forest2.jpg",
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                create_comp_weird(80.0, translation(-150.0, 80.0, 40.0), Color::RED),
+                create_comp_weird(60.0, translation(80.0, 60.0, 0.0), Color::BLUE),
+                create_comp_weird(40.0, translation(50.0, 40.0, 150.0), Color::GREEN),
+                create_comp_weird(20.0, translation(-50.0, 20.0, 150.0), Color::PURPLE),
+                create_floor(600.0, Color::GRAY),
+            ),
+        ),
+    );
 
     let image = render(scene, image(1920, 1080), camera([0.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/many_weirds");
+}
+
+fn default_material(color: Color) -> Box<PhongShader> {
+    Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0))
+}
+
+fn clear_material() -> Box<TranslucentShader> {
+    Box::new(TranslucentShader::new(Color::WHITE, 1.52))
+}
+
+#[test]
+fn subtraction_room() {
+    let sphere_size: f64 = 80.0;
+    let make_spikey_thing = || -> Box<SubtractShape> {
+        subtract_shape(
+            DMat4::identity(),
+            subtract_shape(
+                DMat4::identity(),
+                subtract_shape(
+                    DMat4::identity(),
+                    base_shape(
+                        DMat4::identity(),
+                        sphere(sphere_size),
+                    ),
+                    base_shape(
+                        translation(sphere_size, 0.0, 0.0),
+                        sphere(sphere_size),
+                    ),
+                ),
+                base_shape(
+                    translation(0.0, sphere_size, 0.0),
+                    sphere(sphere_size),
+                ),
+            ),
+            base_shape(
+                translation(0.0, 0.0, sphere_size),
+                sphere(sphere_size),
+            ),
+        )
+    };
+
+    let make_weird_cube = || -> Box<SubtractShape> {
+        subtract_shape(
+            DMat4::identity(),
+            base_shape(
+                DMat4::identity(),
+                cube(sphere_size*2.0),
+            ),
+            base_shape(
+                DMat4::identity(),
+                sphere(sphere_size),
+            ),
+        )
+    };
+
+    let scene = build_scene(
+        vec!(light1(), light2()),
+        no_ambient(),
+        "assets/images/backgrounds/forest2.jpg",
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                create_room(700.0, RoomColorScheme {
+                    ceiling: Color::RED,
+                    floor: Color::GREEN,
+                    front: Color::BLUE,
+                    back: Color::CYAN,
+                    left: Color::MAGENTA,
+                    right: Color::YELLOW,
+                }),
+                geometry_node(
+                    translation(-150.0, 0.0, 40.0)*rotation(Axis::Z, 60.0),
+                    clear_material(),
+                    make_spikey_thing(),
+                    vec!(),
+                ),
+                geometry_node(
+                    translation(100.0, 0.0, 40.0)*rotation(Axis::Y, 45.0),
+                    clear_material(),
+                    make_weird_cube(),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let mut render_config = RenderConfig::default();
+    render_config.anti_alias = true;
+    let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    write_to_png( image, "output/subtraction_room");
 }

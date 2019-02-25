@@ -124,7 +124,7 @@ impl SceneNode {
             primitive: None, 
             material: Box::new(default_shader),
             transform: TransformComponent::new(DMat4::identity()),
-            children: Vec::new()
+            children: Vec::new(),
         }
     }
 
