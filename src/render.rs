@@ -144,9 +144,12 @@ pub fn render_with_config(  scene: Scene,
                     let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
                     let (distance, color) = thread_scene.cast_ray_get_distance(prime_ray);
                     image_chunk.push((distance, color));
+
+                    // Send progress report
+                    // thread_progress_sender.send(ProgressMessage::Progress(1)).unwrap();
                 }
 
-                // Only send progress after every line to not overload progress tracker
+                // Only send progress after every line to not overload progress track
                 thread_progress_sender.send(ProgressMessage::Progress(width)).unwrap();
             }
             thread_sender.send((chunk, image_chunk)).unwrap();

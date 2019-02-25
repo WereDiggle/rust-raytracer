@@ -73,55 +73,55 @@ fn clear_material() -> Box<TranslucentShader> {
     Box::new(TranslucentShader::new(Color::WHITE, 1.52))
 }
 
-#[test]
-fn subtraction_room() {
-    let sphere_size: f64 = 80.0;
-    let make_spikey_thing = || -> Box<SubtractShape> {
+fn make_spikey_thing(size: f64) -> Box<SubtractShape> {
+    subtract_shape(
+        DMat4::identity(),
         subtract_shape(
             DMat4::identity(),
             subtract_shape(
                 DMat4::identity(),
-                subtract_shape(
+                base_shape(
                     DMat4::identity(),
-                    base_shape(
-                        DMat4::identity(),
-                        sphere(sphere_size),
-                    ),
-                    base_shape(
-                        translation(sphere_size, 0.0, 0.0),
-                        sphere(sphere_size),
-                    ),
+                    sphere(size),
                 ),
                 base_shape(
-                    translation(0.0, sphere_size, 0.0),
-                    sphere(sphere_size),
+                    translation(size, 0.0, 0.0),
+                    sphere(size),
                 ),
             ),
             base_shape(
-                translation(0.0, 0.0, sphere_size),
-                sphere(sphere_size),
+                translation(0.0, size, 0.0),
+                sphere(size),
             ),
-        )
-    };
+        ),
+        base_shape(
+            translation(0.0, 0.0, size),
+            sphere(size),
+        ),
+    )
+}
 
-    let make_weird_cube = || -> Box<SubtractShape> {
-        subtract_shape(
+fn make_weird_cube(size: f64) -> Box<SubtractShape> {
+    subtract_shape(
+        DMat4::identity(),
+        base_shape(
             DMat4::identity(),
-            base_shape(
-                DMat4::identity(),
-                cube(sphere_size*2.0),
-            ),
-            base_shape(
-                DMat4::identity(),
-                sphere(sphere_size),
-            ),
-        )
-    };
+            cube(size*2.0),
+        ),
+        base_shape(
+            DMat4::identity(),
+            sphere(size),
+        ),
+    )
+}
 
+#[test]
+fn subtraction_room() {
+    let sphere_size: f64 = 80.0;
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/forest2.jpg",
+        "assets/images/backgrounds/building.jpg",
         scene_node(
             DMat4::identity(),
             vec!(
@@ -136,13 +136,13 @@ fn subtraction_room() {
                 geometry_node(
                     translation(-150.0, 0.0, 40.0)*rotation(Axis::Z, 60.0),
                     clear_material(),
-                    make_spikey_thing(),
+                    make_spikey_thing(sphere_size),
                     vec!(),
                 ),
                 geometry_node(
                     translation(100.0, 0.0, 40.0)*rotation(Axis::Y, 45.0),
                     clear_material(),
-                    make_weird_cube(),
+                    make_weird_cube(sphere_size),
                     vec!(),
                 ),
             ),
@@ -153,4 +153,36 @@ fn subtraction_room() {
     render_config.anti_alias = true;
     let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
     write_to_png( image, "output/subtraction_room");
+}
+
+#[test]
+fn subtraction_outside() {
+    let sphere_size: f64 = 80.0;
+    let scene = build_scene(
+        vec!(light1(), light2()),
+        no_ambient(),
+        "assets/images/backgrounds/building.jpg",
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    translation(-150.0, 0.0, 40.0)*rotation(Axis::Z, 60.0),
+                    clear_material(),
+                    make_spikey_thing(sphere_size),
+                    vec!(),
+                ),
+                geometry_node(
+                    translation(100.0, 0.0, 40.0)*rotation(Axis::Y, 45.0),
+                    clear_material(),
+                    make_weird_cube(sphere_size),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let mut render_config = RenderConfig::default();
+    render_config.anti_alias = true;
+    let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    write_to_png( image, "output/subtraction_outside");
 }
