@@ -115,6 +115,31 @@ fn make_weird_cube(size: f64) -> Box<SubtractShape> {
     )
 }
 
+fn subracted_sphere(size: f64) -> Box<SubtractShape> {
+    subtract_shape(
+        DMat4::identity(),
+        base_shape(
+            DMat4::identity(),
+            sphere(size),
+        ),
+        base_shape(
+            DMat4::identity(),
+            cube(size*0.7),
+        ),
+    )
+}
+
+fn double_subracted_sphere(size: f64) -> Box<SubtractShape> {
+    subtract_shape(
+        DMat4::identity(),
+        base_shape(
+            DMat4::identity(),
+            sphere(size),
+        ),
+        make_weird_cube(size*0.7)
+    )
+}
+
 #[test]
 fn subtraction_room() {
     let sphere_size: f64 = 80.0;
@@ -185,4 +210,30 @@ fn subtraction_outside() {
     render_config.anti_alias = true;
     let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
     write_to_png( image, "output/subtraction_outside");
+}
+
+#[test]
+fn subtraction_outside3() {
+    let sphere_size: f64 = 100.0;
+    let scene = build_scene(
+        vec!(light1(), light2()),
+        no_ambient(),
+        "assets/images/backgrounds/building.jpg",
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    translation(0.0, 0.0, 40.0)*rotation(Axis::Y, 45.0),
+                    clear_material(),
+                    subracted_sphere(sphere_size),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let mut render_config = RenderConfig::default();
+    render_config.anti_alias = true;
+    let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    write_to_png( image, "output/subtraction_outside3");
 }
