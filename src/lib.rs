@@ -1,6 +1,7 @@
 extern crate snowflake;
 extern crate image;
 extern crate euler;
+extern crate rand;
 
 pub mod color;
 pub mod scene;
@@ -22,6 +23,7 @@ pub use light::*;
 pub use progress_tracker::*;
 pub use render::*;
 pub use composite_shape::*;
+pub use geometry::*;
 
 // TODO: make this more robust, so it creates directories as well
 pub fn write_to_png(img: RgbImage, file_name: &str) {

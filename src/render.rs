@@ -1,20 +1,28 @@
 use std::sync::{mpsc};
 use image::{RgbImage, ImageBuffer};
 use euler::*;
-pub use color::*;
-pub use scene::*;
-pub use geometry::*;
-pub use shader::*;
-pub use primitive::*;
-pub use light::*;
-pub use multithread::*;
-pub use progress_tracker::*;
+use color::*;
+use scene::*;
+use geometry::*;
+use shader::*;
+use primitive::*;
+use light::*;
+use multithread::*;
+use progress_tracker::*;
+use rand::prelude::*;
+use std::f64::consts::PI;
 
 // How different must neighbouring pixels be to be anti-aliased
 const AA_THRESHOLD: f64 = 0.08;
 
+// How many more rays to use for anti_aliasing
+const AA_RAYS: u32 = 5;
+
 // How many worker threads available for jobs
 const NUM_THREADS: usize = 8;
+
+// How many chunks to split the workload into
+const WORKLOAD_SPLIT: u32 = 500;
 
 // How times a ray can reflect/refract/etc through the scene
 const RECURSION_DEPTH: u32 = 20;
@@ -22,8 +30,10 @@ const RECURSION_DEPTH: u32 = 20;
 #[derive(Clone, Copy)]
 pub struct RenderConfig {
     pub num_threads: usize,
+    pub workload_split: u32,
     pub anti_alias: bool,
     pub aa_threshold: f64,
+    pub aa_rays: u32,
     pub recursion_depth: u32,
 }
 
@@ -31,8 +41,10 @@ impl RenderConfig {
     pub fn default() -> RenderConfig {
         RenderConfig {
             num_threads: NUM_THREADS,
+            workload_split: WORKLOAD_SPLIT,
             anti_alias: true,
             aa_threshold: AA_THRESHOLD,
+            aa_rays: AA_RAYS,
             recursion_depth: RECURSION_DEPTH,
         }
     }
@@ -125,8 +137,8 @@ pub fn render_with_config(  scene: Scene,
     let progress_tracker = ProgressTracker::new(image_dimension);
 
     // Divide work into horizontal chunks of the image
-    let lines_per_chunk = divide_round_up(height, render_config.num_threads as u32);
-    for chunk in 0..render_config.num_threads as u32 {
+    let lines_per_chunk = divide_round_up(height, render_config.workload_split);
+    for chunk in 0..render_config.workload_split as u32 {
 
         // cloned so thread owns it's own copy of these
         let thread_sender = sender.clone();
@@ -157,8 +169,8 @@ pub fn render_with_config(  scene: Scene,
     }
 
     // Collect completed work from worker threads
-    let mut collected_chunks: Vec<Vec<(f64, Color)>> = vec![Vec::new(); render_config.num_threads];
-    for _ in 0..render_config.num_threads {
+    let mut collected_chunks: Vec<Vec<(f64, Color)>> = vec![Vec::new(); render_config.workload_split as usize];
+    for _ in 0..render_config.workload_split {
         let (i, line_colors) = receiver.recv().unwrap();
         collected_chunks[i as usize] = line_colors;
     }
@@ -200,9 +212,11 @@ pub fn render_with_config(  scene: Scene,
         let progress_sender = progress_tracker.get_sender();
         progress_sender.send(ProgressMessage::StartAA(aa_corrections.len() as u32)).unwrap();
 
+        let theta = 2.0*PI/render_config.aa_rays as f64;
+
         let num_corrections = aa_corrections.len();
-        let corrections_per_thread = divide_round_up(aa_corrections.len() as u32, render_config.num_threads as u32);
-        for _ in 0..render_config.num_threads {
+        let corrections_per_thread = divide_round_up(aa_corrections.len() as u32, render_config.workload_split);
+        for _ in 0..render_config.workload_split {
 
             // Clone these for the threads to own a copy
             let thread_sender = sender.clone();
@@ -210,6 +224,7 @@ pub fn render_with_config(  scene: Scene,
             let thread_scene = scene.clone();
 
             // Each thread gets its own list of anti-aliasing corrections to complete
+            // TODO: use this information more effectively in AA process
             let mut corrections: Vec<(u32, u32, f64, Color)> = Vec::new();
             for _ in 0..corrections_per_thread {
                 if let Some(correction) = aa_corrections.pop() {
@@ -225,17 +240,32 @@ pub fn render_with_config(  scene: Scene,
             }
 
             thread_pool.execute(move || {
+
+                let mut rng = rand::thread_rng();
+
                 for correction in corrections.into_iter() {
                     let x = correction.0;
                     let y = correction.1;
                     let mut correction_colors: Vec<Color> = Vec::with_capacity(9);
                     correction_colors.push(correction.3);
-                    for correction_dir in eight_directions.iter() {
-                        let corr_x = correction_dir.0 as f64;
-                        let corr_y = correction_dir.1 as f64;
 
-                        // TODO: randomize rays around the pixel
-                        let pixel_location = calculate_pixel_location(x as f64 + 0.5 + (corr_x * 0.4), y as f64 + 0.5 + (corr_y * 0.4));
+                    let mut aa_directions: Vec<DVec2> = Vec::with_capacity(render_config.aa_rays as usize);
+                    let rand_rotation = rng.gen_range(0.0, 2.0*PI);
+                    for i in 0..render_config.aa_rays {
+                        let x = (rand_rotation + theta * i as f64).cos();
+                        let y = (rand_rotation + theta * i as f64).sin();
+                        aa_directions.push(dvec2!(x, y));
+                    }
+
+                    for aa_direction in aa_directions.iter() {
+                        // let corr_x = correction_dir.0 as f64;
+                        // let corr_y = correction_dir.1 as f64;
+
+                        let rand_distance: f64 = rng.gen_range(0.2, 0.5);
+                        let rand_direction = *aa_direction * rand_distance;
+                        let x_pos = x as f64 + 0.5 + rand_direction.x;
+                        let y_pos = y as f64 + 0.5 + rand_direction.y;
+                        let pixel_location = calculate_pixel_location(x_pos, y_pos);
                         let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
 
                         if correction.2 != std::f64::INFINITY {
