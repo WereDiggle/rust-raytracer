@@ -176,7 +176,7 @@ fn subtraction_room() {
 
     let mut render_config = RenderConfig::default();
     render_config.anti_alias = true;
-    let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    let image = render_with_config(scene, image(1920, 1080), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
     write_to_png( image, "output/subtraction_room");
 }
 
