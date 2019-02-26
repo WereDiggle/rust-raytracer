@@ -1,7 +1,133 @@
 use euler::{dvec3, DVec3, DMat4};
 use geometry::{Intersectable, Intersect, Ray, matrix::*, Transformable, TransformComponent};
 
-pub trait Compositable: Intersectable + Transformable + CompositableClone {}
+#[derive(PartialEq, Copy, Clone)]
+enum Hit {
+    Enter,
+    Exit,
+}
+
+enum Control {
+    Return,
+    Nop,
+}
+
+fn hit_direction(intersect: Intersect) -> Hit {
+    let dot = intersect.surface_normal.dot(intersect.ray.direction);
+    if dot < 0.0 {Hit::Enter} else {Hit::Exit}
+}
+
+// Assumes A and B are already sorted by distance
+fn merge(A: Vec<(usize, Hit, Intersect)>, B: Vec<(usize, Hit, Intersect)>) -> Vec<(usize, Hit, Intersect)> {
+    let mut all_intersects: Vec<(usize, Hit, Intersect)> = Vec::with_capacity(A.len() + B.len());
+
+    let mut b_iter = B.into_iter();
+    let mut some_b = b_iter.next();
+
+    let mut a_iter = A.into_iter();
+    let mut some_a = a_iter.next();
+
+    for _ in 0..all_intersects.capacity() {
+        // Take the shortest distance one
+        // TODO: refactor this ugly mess
+        let shortest = if let Some(a) = some_a {
+            if let Some(b) = some_b {
+                if a.2.distance < b.2.distance {
+                    some_a = a_iter.next();
+                    a
+                }
+                else {
+                    some_b = b_iter.next();
+                    b
+                }
+            }
+            else {
+                some_a = a_iter.next();
+                a
+            }
+        }
+        else {
+            if let Some(b) = some_b {
+                some_b = b_iter.next();
+                b
+            }
+            else { break; }
+        };
+        all_intersects.push(shortest);
+    }
+
+/*
+    'outer: for a in A.into_iter() {
+        while let Some(b) = some_b {
+            if a.2.distance < b.2.distance {
+                all_intersects.push(a);
+                continue 'outer;
+            }
+            else {
+                all_intersects.push(b);
+                some_b = b_iter.next();
+            }
+        }
+        all_intersects.push(a);
+    }
+    */
+    all_intersects
+}
+
+// General function for calculating the intersections of any boolean operation
+fn calculate_intersects(comp: &(Compositable + Send + Sync), ray: Ray, mut check_get: &mut FnMut(usize, &Vec<bool>, Intersect) -> Control) 
+{
+
+    let ray = ray.transform(comp.get_inverse_transform());
+
+    // Gather all intersects and sort by distance
+    let shapes = comp.get_shapes();
+    let mut shape_intersects: Vec<Vec<Intersect>> = Vec::with_capacity(shapes.len());
+    for shape in shapes.iter() {
+        let mut intersects = shape.get_all_intersects(ray);
+        intersects.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
+        shape_intersects.push(intersects);
+    }
+
+    // Categorize each intersect
+    let mut temp_intersects: Vec<Vec<(usize, Hit, Intersect)>> = Vec::with_capacity(shapes.len());
+    for (i, shape_sects) in shape_intersects.into_iter().enumerate() {
+        let mut intersects: Vec<(usize, Hit, Intersect)> = shape_sects.into_iter().map(|x| (i, hit_direction(x), x)).collect();
+        temp_intersects.push(intersects);
+    }
+    // I want to keep this name
+    let shape_intersects = temp_intersects;
+    
+    // states need to be initialized depending on the intersects
+    let mut states: Vec<bool> = shape_intersects.iter().map(|vec| {
+        if let Some(first_pos) = vec.first() {
+            match first_pos.1 {
+                Hit::Enter => false,
+                Hit::Exit => true,
+            }
+        }
+        else {
+            false
+        }
+    }).collect();
+
+    let all_intersects = shape_intersects.iter().fold(Vec::new(), |acc, x| merge(acc, x.to_vec()));
+    for (cur_state, _, intersect) in all_intersects {
+        
+        // check_get will test the states and put the intersect where it needs to be
+        match check_get(cur_state, &states, intersect.transform(comp.get_transform())) {
+            Control::Return => return,
+            Control::Nop => (),
+        }
+
+        // Change states at the end
+        states[cur_state] = !states[cur_state];
+    }
+}
+
+pub trait Compositable: Intersectable + Transformable + CompositableClone {
+    fn get_shapes(&self) -> Vec<&(Compositable + Send + Sync)>;
+}
 
 pub trait CompositableClone {
     // Seems to be the only way to get this one to clone,
@@ -39,7 +165,11 @@ impl BaseShape {
     }
 }
 
-impl Compositable for BaseShape {}
+impl Compositable for BaseShape {
+    fn get_shapes(&self) -> Vec<&(Compositable + Send + Sync)> {
+        vec!(self)
+    }
+}
 
 impl Transformable for BaseShape {
 
@@ -66,23 +196,11 @@ impl Intersectable for BaseShape {
         None
     }
 
-/*
-    fn surface_normal(&self, hit_point: DVec3) -> DVec3 {
-        transform_normal_with_inverse(self.transform.get_inverse_transform(), 
-                                      self.primitive.surface_normal(transform_point(self.transform.get_inverse_transform(), hit_point)))
-    }
-    */
-
     fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
         let ray = ray.transform(self.transform.get_inverse_transform());
         let intersects = self.primitive.get_all_intersects(ray);
         intersects.into_iter().map(|inter| inter.transform(self.transform.get_transform())).collect()
     }
-}
-
-enum Control {
-    Return,
-    Nop,
 }
 
 #[derive(Clone)]
@@ -100,83 +218,13 @@ impl SubtractShape {
             negative,
         }
     }
-
-    fn get_intersects<F>(&self, ray: Ray, mut func: F)
-        where F: FnMut(Intersect) -> Control {
-
-        let ray = ray.transform(self.transform.get_inverse_transform());
-
-        // Gather all intersects
-        let mut positive_intersects = self.positive.get_all_intersects(ray);
-        let mut negative_intersects = self.negative.get_all_intersects(ray);
-
-        // sort by distance
-        positive_intersects.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
-        negative_intersects.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
-
-        // Handle trivial cases
-        if positive_intersects.len() == 0 {
-            return;
-        }
-        else if negative_intersects.len() == 0 {
-            // we know positive_intersects.len() != 0
-            for intersect in positive_intersects.into_iter() {
-                match func(intersect.transform(self.transform.get_transform())) {
-                    Control::Return => return,
-                    Control::Nop => (),
-                }
-            }
-            return;
-        }
-
-        // Categorize each intersect
-        let positive_intersects: Vec<(Sign, Hit, Intersect)> = positive_intersects.into_iter().map(|x| (Sign::Pos, hit_direction(x), x)).collect();
-        let negative_intersects: Vec<(Sign, Hit, Intersect)> = negative_intersects.into_iter().map(|x| (Sign::Neg, hit_direction(x), x)).collect();
-        
-        // states need to be initialized depending on the intersects
-        let mut in_pos = false;
-        let mut in_neg = false;
-        if let Some(first_pos) = positive_intersects.first() {
-            match first_pos.1 {
-                Hit::Enter => in_pos = false,
-                Hit::Exit => in_pos = true,
-            }
-        }
-        if let Some(first_neg) = negative_intersects.first() {
-            match first_neg.1 {
-                Hit::Enter => in_neg = false,
-                Hit::Exit => in_neg = true,
-            }
-        }
-
-        let all_intersects = merge(positive_intersects, negative_intersects);
-        for (sign, _, intersect) in all_intersects {
-
-            // positive intersect
-            if !in_neg && sign == Sign::Pos {
-                match func(intersect.transform(self.transform.get_transform())) {
-                    Control::Return => return,
-                    Control::Nop => (),
-                }
-            }
-            // subtracted intersect
-            else if in_pos && sign == Sign::Neg {
-                match func(intersect.transform(self.transform.get_transform()).invert_normal()) {
-                    Control::Return => return,
-                    Control::Nop => (),
-                }
-            }
-
-            // Change states at the end
-            match sign {
-                Sign::Pos => in_pos = !in_pos,
-                Sign::Neg => in_neg = !in_neg,
-            }
-        }
-    }
 }
 
-impl Compositable for SubtractShape {}
+impl Compositable for SubtractShape {
+    fn get_shapes(&self) -> Vec<&(Compositable + Send + Sync)> {
+        vec!(self.positive.as_ref(), self.negative.as_ref())
+    }
+}
 
 impl Transformable for SubtractShape {
 
@@ -193,59 +241,33 @@ impl Transformable for SubtractShape {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
-enum Hit {
-    Enter,
-    Exit,
-}
-
-#[derive(PartialEq, Copy, Clone)]
-enum Sign {
-    Pos,
-    Neg,
-}
-
-fn hit_direction(intersect: Intersect) -> Hit {
-    let dot = intersect.surface_normal.dot(intersect.ray.direction);
-    if dot < 0.0 {Hit::Enter} else {Hit::Exit}
-}
-
-// Assumes A and B are already sorted by distance
-fn merge(A: Vec<(Sign, Hit, Intersect)>, B: Vec<(Sign, Hit, Intersect)>) -> Vec<(Sign, Hit, Intersect)> {
-    let mut all_intersects: Vec<(Sign, Hit, Intersect)> = Vec::with_capacity(A.len() + B.len());
-    let mut b_iter = B.into_iter();
-    let mut some_b = b_iter.next();
-    'outer: for a in A.into_iter() {
-        while let Some(b) = some_b {
-            if a.2.distance < b.2.distance {
-                all_intersects.push(a);
-                continue 'outer;
-            }
-            else {
-                all_intersects.push(b);
-                some_b = b_iter.next();
-            }
-        }
-        all_intersects.push(a);
-    }
-    all_intersects
-}
-
 impl Intersectable for SubtractShape {
 
     fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
         let mut ret_intersect: Option<Intersect> = None;
-        self.get_intersects(ray, |intersect| {
-            ret_intersect = Some(intersect);
-            Control::Return
+        calculate_intersects(self, ray, &mut |cur_state: usize, states: &Vec<bool>, intersect| {
+            if !states[1] && cur_state == 0 {
+                ret_intersect = Some(intersect);
+                return Control::Return;
+            }
+            else if states[0] && cur_state == 1 {
+                ret_intersect = Some(intersect.invert_normal());
+                return Control::Return;
+            }
+            Control::Nop
         });
         ret_intersect
     }
 
     fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
         let mut ret_intersects: Vec<Intersect> = Vec::new();
-        self.get_intersects(ray, |intersect| {
-            ret_intersects.push(intersect);
+        calculate_intersects(self, ray, &mut |cur_state: usize, states: &Vec<bool>, intersect| {
+            if !states[1] && cur_state == 0 {
+                ret_intersects.push(intersect);
+            }
+            else if states[0] && cur_state == 1 {
+                ret_intersects.push(intersect.invert_normal());
+            }
             Control::Nop
         });
         ret_intersects

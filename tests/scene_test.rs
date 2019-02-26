@@ -1,9 +1,6 @@
 extern crate raytracer;
 extern crate euler;
 
-mod common;
-
-use common::*;
 use raytracer::*;
 use raytracer::matrix::*;
 use euler::*;
