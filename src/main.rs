@@ -2,7 +2,6 @@ extern crate raytracer;
 extern crate euler;
 
 use raytracer::*;
-use raytracer::matrix::*;
 use euler::*;
 use std::f64::consts::PI;
 

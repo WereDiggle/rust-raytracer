@@ -1,5 +1,7 @@
 use super::*;
 use super::matrix::*;
+use super::composite_shape::subtract_shape::*;
+use super::composite_shape::base_shape::*;
 use euler::*;
 
 pub fn build_scene(lights: Vec<Box<Lightable + Send + Sync>>, 

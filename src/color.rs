@@ -1,7 +1,7 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
 use image::{Rgb};
 
-mod consts;
+pub mod consts;
 
 // Color needs to be encoded and decoded
 // because most image formats don't store color linearly

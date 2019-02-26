@@ -26,6 +26,7 @@ pub use render::*;
 pub use composite_shape::*;
 pub use geometry::*;
 pub use util::*;
+pub use geometry::matrix::*;
 
 // TODO: make this more robust, so it creates directories as well
 pub fn write_to_png(img: RgbImage, file_name: &str) {
