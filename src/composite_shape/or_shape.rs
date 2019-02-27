@@ -38,8 +38,8 @@ impl Intersectable for OrShape {
         calculate_intersects(self, ray, &mut |cur_state: usize, states: &Vec<bool>, intersect| {
             if !(states[0] && states[1])        // throw out any that are inside the intersection of both shapes
                && ( (!states[0] && !states[1])  // Coming from outside
-                    || states[curstate]) {      // exiting to outside
-                ret_intersect.push(intersect);
+                    || states[cur_state]) {      // exiting to outside
+                ret_intersects.push(intersect);
             }
             Control::Nop
         });

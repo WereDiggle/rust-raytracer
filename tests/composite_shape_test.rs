@@ -209,29 +209,6 @@ fn subtraction_outside() {
     write_to_png( image, "output/subtraction_outside");
 }
 
-fn make_round_cube(size: f64) -> Box<SubtractShape> {
-    subtract_shape(
-        DMat4::identity(),
-        base_shape(
-            DMat4::identity(),
-            cube(size*2.0),
-        ),
-        base_shape(
-            DMat4::identity(),
-            sphere(size),
-        ),
-    )
-}
-
-fn shiney_material(color: Color) -> Box<Shadable + Send + Sync> {
-    let mut comp_material = Box::new(CompositeShader::new());
-    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
-    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
-    comp_material.add_shader(0.8, phong);
-    comp_material.add_shader(0.2, reflect);
-    comp_material
-}
-
 #[test]
 fn subtraction_outside3() {
     let sphere_size: f64 = 100.0;
@@ -256,4 +233,123 @@ fn subtraction_outside3() {
     render_config.anti_alias = true;
     let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
     write_to_png( image, "output/subtraction_outside3");
+}
+
+fn make_round_cube(size: f64) -> Box<AndShape> {
+    and_shape(
+        DMat4::identity(),
+        base_shape(
+            DMat4::identity(),
+            cube(size*1.5),
+        ),
+        base_shape(
+            DMat4::identity(),
+            sphere(size),
+        ),
+    )
+}
+
+fn shiney_material(color: Color) -> Box<CompositeShader> {
+    let mut comp_material = Box::new(CompositeShader::new());
+    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
+    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
+    comp_material.add_shader(0.8, phong);
+    comp_material.add_shader(0.2, reflect);
+    comp_material
+}
+
+#[test]
+fn rounded_cube() {
+    let sphere_size: f64 = 100.0;
+    let scene = build_scene(
+        vec!(light1(), light2()),
+        no_ambient(),
+        "assets/images/backgrounds/building.jpg",
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    translation(0.0, 0.0, 40.0)*rotation(Axis::Y, 45.0)*rotation(Axis::Z, 15.0),
+                    shiney_material(Color::MAROON),
+                    make_round_cube(sphere_size),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let mut render_config = RenderConfig::default();
+    render_config.anti_alias = true;
+    let image = render_with_config(scene, image(1920, 1080), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    write_to_png( image, "output/rounded_cube");
+}
+
+fn make_xor_sphere(size: f64) -> Box<XorShape> {
+    xor_shape(
+        DMat4::identity(),
+        base_shape(
+            translation(size/4.0, 0.0, 0.0),
+            sphere(size),
+        ),
+        base_shape(
+            translation(-size/4.0, 0.0, 0.0),
+            sphere(size),
+        ),
+    )
+}
+
+#[test]
+fn xor_test() {
+    let sphere_size: f64 = 100.0;
+    let scene = build_scene(
+        vec!(light1(), light2()),
+        no_ambient(),
+        "assets/images/backgrounds/building.jpg",
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    translation(0.0, 0.0, 40.0),
+                    clear_material(),
+                    make_xor_sphere(sphere_size),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let mut render_config = RenderConfig::default();
+    render_config.anti_alias = true;
+    let image = render_with_config(scene, image(1920, 1080), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    write_to_png( image, "output/xor_test");
+}
+
+#[test]
+fn subtraction_outside4() {
+    let sphere_size: f64 = 100.0;
+    let scene = build_scene(
+        vec!(light1(), light2()),
+        no_ambient(),
+        "assets/images/backgrounds/building.jpg",
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    translation(10.0, 0.0, 40.0)*rotation(Axis::Y, 45.0),
+                    clear_material(),
+                    subtract_shape(
+                        DMat4::identity(),
+                        make_round_cube(sphere_size),
+                        make_xor_sphere(sphere_size*0.5),
+                    ),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let mut render_config = RenderConfig::default();
+    render_config.anti_alias = true;
+    let image = render_with_config(scene, image(1920, 1080), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    write_to_png( image, "output/subtraction_outside4");
 }

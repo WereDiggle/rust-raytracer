@@ -225,6 +225,18 @@ pub fn or_shape(transform: DMat4, primary: Box<Compositable + Send + Sync>, seco
     Box::new(shape)
 }
 
+pub fn xor_shape(transform: DMat4, primary: Box<Compositable + Send + Sync>, secondary: Box<Compositable + Send + Sync>) -> Box<XorShape> {
+    let mut shape = XorShape::new(primary, secondary);
+    shape.set_transform(transform);
+    Box::new(shape)
+}
+
+pub fn and_shape(transform: DMat4, primary: Box<Compositable + Send + Sync>, secondary: Box<Compositable + Send + Sync>) -> Box<AndShape> {
+    let mut shape = AndShape::new(primary, secondary);
+    shape.set_transform(transform);
+    Box::new(shape)
+}
+
 pub fn base_shape(transform: DMat4, primitive: Box<Intersectable + Send + Sync>) -> Box<BaseShape> {
     Box::new(BaseShape::new(transform, primitive))
 }
