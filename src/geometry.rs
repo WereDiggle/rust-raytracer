@@ -1,4 +1,4 @@
-use euler::{dmat4, DMat4, DVec3, dvec4};
+use euler::{dmat4, DMat4, DVec2, DVec3, dvec4, dvec2};
 use shader::Shadable;
 use color::*;
 use snowflake::ProcessUniqueId;
@@ -171,16 +171,32 @@ impl Ray {
 }
 
 #[derive(Clone, Copy)]
+pub struct SurfaceCoord {
+    coord: DVec2,
+}
+
+impl SurfaceCoord {
+    pub fn new(u: f64, v: f64) -> SurfaceCoord {
+        SurfaceCoord {coord: dvec2!(u, v)}
+    }
+
+    pub fn get_u(&self) -> f64 {self.coord.x}
+    pub fn get_v(&self) -> f64 {self.coord.y}
+    pub fn get_coord(&self) -> (f64, f64) {(self.coord.x, self.coord.y)}
+}
+
+#[derive(Clone, Copy)]
 pub struct Intersect {
     pub ray: Ray,
     pub distance: f64, 
     pub hit_point: DVec3,
     pub surface_normal: DVec3,
+    pub surface_coord: SurfaceCoord,
 }
 
 impl Intersect {
-    pub fn new(ray: Ray, distance: f64, hit_point: DVec3, surface_normal: DVec3) -> Intersect {
-        Intersect{ ray, distance, hit_point, surface_normal}
+    pub fn new(ray: Ray, distance: f64, hit_point: DVec3, surface_normal: DVec3, surface_coord: SurfaceCoord) -> Intersect {
+        Intersect{ ray, distance, hit_point, surface_normal, surface_coord}
     }
 
     pub fn transform(&self, matrix: DMat4) -> Intersect {
@@ -193,6 +209,7 @@ impl Intersect {
             distance,
             hit_point,
             surface_normal,
+            surface_coord: self.surface_coord,
         }
     }
 
@@ -202,6 +219,7 @@ impl Intersect {
             distance: self.distance,
             hit_point: self.hit_point,
             surface_normal: self.surface_normal * -1.0,
+            surface_coord: self.surface_coord,
         }
     }
 }

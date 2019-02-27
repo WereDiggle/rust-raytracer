@@ -1,5 +1,6 @@
 use euler::{dvec3, DVec3, DMat4};
-use geometry::{Intersect, Intersectable, Ray, matrix::*};
+use geometry::{SurfaceCoord, Intersect, Intersectable, Ray, matrix::*};
+use std::f64::consts::PI;
 
 #[derive(Clone)]
 pub struct OneWay {
@@ -87,6 +88,19 @@ impl Sphere {
         Sphere {radius}
     }
 
+    fn get_surface_coord(hit_point: DVec3) -> SurfaceCoord {
+        let hit_point = hit_point.normalize();
+        let azimuth = hit_point.z.atan2(hit_point.x);
+        let elevation = hit_point.y.asin();
+
+        let u = (azimuth/2.0)/PI + 0.5;
+        let v = elevation/PI + 0.5;
+        assert!(u >= 0.0 && u <= 1.0);
+        assert!(v >= 0.0 && v <= 1.0);
+
+        SurfaceCoord::new(u, v)
+    }
+
     fn two_intersects(&self, ray: Ray) -> (Option<Intersect>, Option<Intersect>) {
         let l = -1.0 * ray.origin;
         let adj = l.dot(ray.direction);
@@ -106,12 +120,14 @@ impl Sphere {
 
         if t0 >= Ray::MIN_DISTANCE {
             let hit_point = ray.point_at_distance(t0);
-            intersects.0 = Some(Intersect::new(ray, t0, hit_point, hit_point.normalize()));
+            let surface_coord = Sphere::get_surface_coord(hit_point);
+            intersects.0 = Some(Intersect::new(ray, t0, hit_point, hit_point.normalize(), surface_coord));
         } 
 
         if t1 >= Ray::MIN_DISTANCE {
             let hit_point = ray.point_at_distance(t1);
-            intersects.1 = Some(Intersect::new(ray, t1, hit_point, hit_point.normalize()));
+            let surface_coord = Sphere::get_surface_coord(hit_point);
+            intersects.1 = Some(Intersect::new(ray, t1, hit_point, hit_point.normalize(), surface_coord));
         }
 
         intersects
@@ -186,7 +202,10 @@ impl Intersectable for RectangularPlane {
         }
 
         if hit_distance >= Ray::MIN_DISTANCE {
-            Some(Intersect::new(ray, hit_distance, hit_point, surface_normal))
+            let u = (hit_point.x/horizontal_bound + 1.0)/2.0;
+            let v = (hit_point.y/vertical_bound + 1.0)/2.0;
+            let surface_coord = SurfaceCoord::new(u, v);
+            Some(Intersect::new(ray, hit_distance, hit_point, surface_normal, surface_coord))
         }
         else {
             None
@@ -217,6 +236,8 @@ pub struct Cube {
 }
 
 impl Cube {
+    const texture_offsets: [(f64, f64); 6] = [(0.0, 1.0), (2.0, 1.0), (1.0, 1.0), (3.0, 1.0), (1.0, 2.0), (1.0, 0.0)];
+
     pub fn new(length: f64) -> Cube {
         let mut matrices: [DMat4; 6] = [DMat4::identity(); 6];  
         let base_plane = RectangularPlane::new(length, length);
@@ -236,16 +257,28 @@ impl Cube {
         Cube{length, base_plane, matrices, inverse_matrices}
     }
 
+    fn transform_surface_coord(surface_coord: SurfaceCoord, face: usize) -> SurfaceCoord {
+        let (mut u, mut v) = surface_coord.get_coord();
+        u = (u + Cube::texture_offsets[face].0)/4.0;
+        v = (v + Cube::texture_offsets[face].1)/3.0;
+        SurfaceCoord::new(u, v)
+    }
+
     fn two_intersects(&self, ray: Ray) -> (Option<Intersect>, Option<Intersect>) {
         let mut intersects: (Option<Intersect>, Option<Intersect>) = (None, None);
         for i in 0..6 {
+
             let transformed_ray = ray.transform(self.inverse_matrices[i]);
             if let Some(intersect) = self.base_plane.get_closest_intersect(transformed_ray) {
+
                 let mut hit_point = transform_point(self.matrices[i], intersect.hit_point);
                 let hit_distance = (ray.origin - hit_point).length();
+
                 if hit_distance >= Ray::MIN_DISTANCE {
-                    let current_intersect = Intersect::new(ray, hit_distance, hit_point, self.surface_normal(hit_point));
+                    let surface_coord = Cube::transform_surface_coord(intersect.surface_coord, i);
+                    let current_intersect = Intersect::new(ray, hit_distance, hit_point, self.surface_normal(hit_point), surface_coord);
                     if let Some(first_intersect) = intersects.0 {
+
                         // Swap to maintain order by hit distance
                         if hit_distance < first_intersect.distance {
                             intersects.1 = Some(first_intersect);
@@ -257,7 +290,7 @@ impl Cube {
                         break;
                     }
                     else {
-                            intersects.0 = Some(current_intersect);
+                        intersects.0 = Some(current_intersect);
                     }
                 }
             }
