@@ -1,7 +1,4 @@
 use super::*;
-use super::matrix::*;
-use super::composite_shape::subtract_shape::*;
-use super::composite_shape::base_shape::*;
 use euler::*;
 
 pub fn build_scene(lights: Vec<Box<Lightable + Send + Sync>>, 
@@ -218,6 +215,12 @@ pub fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNod
 
 pub fn subtract_shape(transform: DMat4, positive: Box<Compositable + Send + Sync>, negative: Box<Compositable + Send + Sync>) -> Box<SubtractShape> {
     let mut shape = SubtractShape::new(positive, negative);
+    shape.set_transform(transform);
+    Box::new(shape)
+}
+
+pub fn or_shape(transform: DMat4, primary: Box<Compositable + Send + Sync>, secondary: Box<Compositable + Send + Sync>) -> Box<OrShape> {
+    let mut shape = OrShape::new(primary, secondary);
     shape.set_transform(transform);
     Box::new(shape)
 }

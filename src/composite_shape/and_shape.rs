@@ -22,7 +22,7 @@ impl Intersectable for AndShape {
     fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
         let mut ret_intersect: Option<Intersect> = None;
         calculate_intersects(self, ray, &mut |cur_state: usize, states: &Vec<bool>, intersect| {
-            if states[1-curstate] || (states[0] && states[1]) {
+            if states[1-cur_state] || (states[0] && states[1]) {
                 ret_intersect = Some(intersect);
                 return Control::Return;
             }
@@ -34,8 +34,8 @@ impl Intersectable for AndShape {
     fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
         let mut ret_intersects: Vec<Intersect> = Vec::new();
         calculate_intersects(self, ray, &mut |cur_state: usize, states: &Vec<bool>, intersect| {
-            if states[1-curstate] || (states[0] && states[1]) {
-                ret_intersect.push(intersect);
+            if states[1-cur_state] || (states[0] && states[1]) {
+                ret_intersects.push(intersect);
             }
             Control::Nop
         });

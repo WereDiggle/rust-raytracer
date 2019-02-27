@@ -209,6 +209,29 @@ fn subtraction_outside() {
     write_to_png( image, "output/subtraction_outside");
 }
 
+fn make_round_cube(size: f64) -> Box<SubtractShape> {
+    subtract_shape(
+        DMat4::identity(),
+        base_shape(
+            DMat4::identity(),
+            cube(size*2.0),
+        ),
+        base_shape(
+            DMat4::identity(),
+            sphere(size),
+        ),
+    )
+}
+
+fn shiney_material(color: Color) -> Box<Shadable + Send + Sync> {
+    let mut comp_material = Box::new(CompositeShader::new());
+    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
+    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
+    comp_material.add_shader(0.8, phong);
+    comp_material.add_shader(0.2, reflect);
+    comp_material
+}
+
 #[test]
 fn subtraction_outside3() {
     let sphere_size: f64 = 100.0;

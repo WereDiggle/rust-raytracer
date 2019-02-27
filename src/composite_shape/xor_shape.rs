@@ -31,7 +31,7 @@ impl Intersectable for XorShape {
             else /*if states[curstate]*/ {
                 ret_intersect = Some(intersect);
             }
-            Control::Return;
+            Control::Return
         });
         ret_intersect
     }
@@ -40,13 +40,13 @@ impl Intersectable for XorShape {
         let mut ret_intersects: Vec<Intersect> = Vec::new();
         calculate_intersects(self, ray, &mut |cur_state: usize, states: &Vec<bool>, intersect| {
             if !states[0] && !states[1] {
-                ret_intersect.push(intersect);
+                ret_intersects.push(intersect);
             }
             else if states[0] && states[1] || states[1-cur_state] {
-                ret_intersect.push(intersect.invert_normal());
+                ret_intersects.push(intersect.invert_normal());
             }
             else /*if states[curstate]*/ {
-                ret_intersect.push(intersect);
+                ret_intersects.push(intersect);
             }
             Control::Nop
         });

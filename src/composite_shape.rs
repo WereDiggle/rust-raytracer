@@ -3,9 +3,15 @@ use geometry::{Intersectable, Intersect, Ray, Transformable, TransformComponent}
 
 pub mod base_shape;
 pub mod subtract_shape;
+pub mod or_shape;
+pub mod xor_shape;
+pub mod and_shape;
 
 pub use self::base_shape::*;
 pub use self::subtract_shape::*;
+pub use self::or_shape::*;
+pub use self::xor_shape::*;
+pub use self::and_shape::*;
 
 #[derive(PartialEq, Copy, Clone)]
 enum Hit {
