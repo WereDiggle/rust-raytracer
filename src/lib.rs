@@ -14,6 +14,7 @@ pub mod progress_tracker;
 pub mod render;
 pub mod composite_shape;
 pub mod util;
+pub mod texture;
 
 use image::{RgbImage};
 pub use color::*;
@@ -27,6 +28,7 @@ pub use composite_shape::*;
 pub use geometry::*;
 pub use util::*;
 pub use geometry::matrix::*;
+pub use texture::*;
 
 // TODO: make this more robust, so it creates directories as well
 pub fn write_to_png(img: RgbImage, file_name: &str) {

@@ -9,17 +9,59 @@ use std::f64::consts::PI;
 use std::f64;
 use std::sync::Arc;
 
+// TODO: find a better place for SkyBox
+#[derive(Clone)]
+pub struct SkyBox {
+    image: Arc<RgbImage>,
+
+    // Only rotation matters here
+    transform: TransformComponent,
+}
+
+impl SkyBox {
+    pub fn from_path(path: &str, matrix: DMat4) -> SkyBox {
+        SkyBox {
+            image: Arc::new(image::open(path).unwrap().to_rgb()),
+            transform: TransformComponent::new(matrix),
+        }
+    }
+
+    pub fn get_color(&self, ray: Ray) -> Color {
+        // TODO: i don't like how this line has 3 "transform"s 
+        let ray = ray.transform(self.transform.get_inverse_transform());
+        let azimuth = ray.direction.z.atan2(ray.direction.x);
+        let elevation = ray.direction.y.asin();
+
+        let u = (azimuth/2.0)/PI + 0.5;
+        let v = elevation/PI + 0.5;
+        assert!(u >= 0.0 && u <= 1.0);
+        assert!(v >= 0.0 && v <= 1.0);
+        let v = 1.0 - v;
+
+        let u = self.image.width() as f64 * u;
+        let v = self.image.height() as f64 * v;
+
+        assert!(self.image.width() > 0);
+        assert!(self.image.height() > 0);
+
+        let u = (u.floor() as u32).min(self.image.width()-1);
+        let v = (v.floor() as u32).min(self.image.height()-1);
+
+        Color::from_rgb(self.image.get_pixel(u, v))
+    }
+}
+
 #[derive(Clone)]
 pub struct Scene {
     pub root: Box<Traceable + Send + Sync>,
     pub lights: Vec<Box<Lightable + Send + Sync>>,
     pub ambient_light: AmbientLight,
-    pub background: Arc<RgbImage>,
+    pub background: Option<SkyBox>,
 }
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene{ root: Box::new(SceneNode::new()), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0), background: Arc::new(ImageBuffer::new(1, 1))}
+        Scene{ root: Box::new(SceneNode::new()), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0), background: None}
     }
 
     pub fn cast_ray(&self, ray: Ray) -> Color {
@@ -48,29 +90,20 @@ impl Scene {
     }
 
     pub fn set_background_from_path(&mut self, file_path: &str) {
-        self.background = Arc::new(image::open(file_path).unwrap().to_rgb());
+        self.background = Some(SkyBox::from_path(file_path, DMat4::identity()));
+    }
+
+    pub fn set_background(&mut self, background: SkyBox) {
+        self.background = Some(background);
     }
 
     pub fn get_background_color(&self, ray: Ray) -> Color {
-        let azimuth = ray.direction.z.atan2(ray.direction.x);
-        let elevation = ray.direction.y.asin();
-
-        let u = (azimuth/2.0)/PI + 0.5;
-        let v = elevation/PI + 0.5;
-        assert!(u >= 0.0 && u <= 1.0);
-        assert!(v >= 0.0 && v <= 1.0);
-        let v = 1.0 - v;
-
-        let u = self.background.width() as f64 * u;
-        let v = self.background.height() as f64 * v;
-
-        assert!(self.background.width() > 0);
-        assert!(self.background.height() > 0);
-
-        let u = (u.floor() as u32).min(self.background.width()-1);
-        let v = (v.floor() as u32).min(self.background.height()-1);
-
-        Color::from_rgb(self.background.get_pixel(u, v))
+        if let Some(ref background) = self.background {
+            background.get_color(ray)
+        }
+        else {
+            Color::BLACK
+        }
     }
 }
 

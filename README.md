@@ -9,4 +9,5 @@ A raytracer built in rust.
 
 # Thanks to
 https://bheisler.github.io/post/writing-raytracer-in-rust-part-1/
+
 https://www.scratchapixel.com/index.php

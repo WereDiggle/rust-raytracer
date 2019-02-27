@@ -3,7 +3,7 @@ use euler::*;
 
 pub fn build_scene(lights: Vec<Box<Lightable + Send + Sync>>, 
                    ambient_light: AmbientLight,
-                   background_path: &str,
+                   background: Option<SkyBox>,
                    root: Box<Traceable + Send + Sync>) -> Scene {
     
     let mut scene = Scene::new();
@@ -11,7 +11,10 @@ pub fn build_scene(lights: Vec<Box<Lightable + Send + Sync>>,
     for light in lights.into_iter() {
         scene.add_light(light);
     }
-    scene.set_background_from_path(background_path);
+    if let Some(background) = background {
+        scene.set_background(background);
+    }
+    
     scene.root = root;
     scene
 }

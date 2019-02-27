@@ -84,7 +84,10 @@ fn main() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/building.jpg",
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/building.jpg",
+            rotation(Axis::Y, 60.0),
+        )),
         scene_node(
             DMat4::identity(),
             vec!(

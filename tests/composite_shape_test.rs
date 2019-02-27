@@ -45,7 +45,10 @@ fn many_weirds() {
     let scene = build_scene(
         vec!(light1()),
         no_ambient(),
-        "assets/images/backgrounds/forest2.jpg",
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/forest2.jpg",
+            rotation(Axis::Y, 180.0),
+        )),
         scene_node(
             DMat4::identity(),
             vec!(
@@ -143,7 +146,7 @@ fn subtraction_room() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/building.jpg",
+        None,
         scene_node(
             DMat4::identity(),
             vec!(
@@ -183,7 +186,10 @@ fn subtraction_outside() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/building.jpg",
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/building.jpg",
+            rotation(Axis::Y, 22.0),
+        )),
         scene_node(
             DMat4::identity(),
             vec!(
@@ -215,7 +221,10 @@ fn subtraction_outside3() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/building.jpg",
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/building.jpg",
+            rotation(Axis::Y, 11.0)
+        )),
         scene_node(
             DMat4::identity(),
             vec!(
@@ -264,7 +273,10 @@ fn rounded_cube() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/building.jpg",
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/building.jpg",
+            rotation(Axis::Y, 0.0),
+        )),
         scene_node(
             DMat4::identity(),
             vec!(
@@ -304,7 +316,10 @@ fn xor_test() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/building.jpg",
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/building.jpg",
+            rotation(Axis::Y, 77.0),
+        )),
         scene_node(
             DMat4::identity(),
             vec!(
@@ -330,7 +345,10 @@ fn subtraction_outside4() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
-        "assets/images/backgrounds/building.jpg",
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/building.jpg",
+            rotation(Axis::Y, 130.0),
+        )),
         scene_node(
             DMat4::identity(),
             vec!(
