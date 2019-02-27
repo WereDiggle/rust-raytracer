@@ -1,6 +1,6 @@
 use euler::{dmat4, DMat4, DVec3, dvec4};
 use shader::Shadable;
-use scene::Traceable;
+use color::*;
 use snowflake::ProcessUniqueId;
 
 pub mod matrix {
@@ -78,17 +78,35 @@ pub mod matrix {
 pub struct Ray {
     pub origin: DVec3,
     pub direction: DVec3,
-    pub depth: u32,
+    depth: u32,
+    contribution: Color,
 }
 
 impl Ray {
     pub const MIN_DISTANCE: f64 = 0.001;
+    pub const MIN_CONTRIBUTION: f64 = 0.003;
     pub fn new(origin: DVec3, direction: DVec3, depth: u32) -> Ray {
-        Ray { origin, direction, depth }
+        Ray { origin, direction, depth, contribution: Color::from_f64(1.0) }
     }
 
     pub fn from_destination(origin: DVec3, destination: DVec3, depth: u32) -> Ray {
-        Ray { origin, direction: (destination - origin).normalize(), depth }
+        Ray { origin, direction: (destination - origin).normalize(), depth, contribution: Color::from_f64(1.0) }
+    }
+
+    pub fn contributes(&self, percentage: Color) -> Ray {
+        let mut new_ray = self.clone();
+        new_ray.contribution *= percentage;
+        new_ray
+    }
+
+    pub fn get_contribution(&self) -> f64 {
+        self.contribution.red +
+        self.contribution.green +
+        self.contribution.blue
+    }
+
+    pub fn get_depth(&self) -> u32 {
+        self.depth
     }
 
     pub fn reflect_off(&self, hit_point: DVec3, surface_normal: DVec3) -> Ray {
@@ -104,6 +122,7 @@ impl Ray {
             origin: hit_point,
             direction: reflection_direction,
             depth: self.depth - 1,
+            contribution: self.contribution,
         }
     }
 
@@ -132,6 +151,7 @@ impl Ray {
                 origin: hit_point,
                 direction: refraction_direction,
                 depth: self.depth - 1,
+                contribution: self.contribution,
             }
         }
     }
@@ -145,6 +165,7 @@ impl Ray {
             origin: (matrix * dvec4!(self.origin, 1.0)).xyz(),
             direction: (matrix * dvec4!(self.direction, 0.0)).xyz().normalize(),
             depth: self.depth,
+            contribution: self.contribution,
         }
     }
 }

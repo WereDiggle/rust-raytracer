@@ -27,6 +27,14 @@ impl Color {
         Color {red, green, blue}
     } 
 
+    pub fn from_f64(color_float: f64) -> Color {
+        Color {
+            red: color_float,
+            green: color_float,
+            blue: color_float,
+        }
+    }
+
     pub fn or_greater(&self, other: Color) -> bool {
         self.red > other.red || self.blue > other.blue || self.green > other.green
     }

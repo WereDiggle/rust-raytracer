@@ -23,7 +23,7 @@ impl Scene {
     }
 
     pub fn cast_ray(&self, ray: Ray) -> Color {
-        if ray.depth > 0 {
+        if ray.get_depth() > 0 && ray.get_contribution() > Ray::MIN_CONTRIBUTION {
             let node_intersect = self.root.trace(ray);
             if let Some(node_intersect) = node_intersect {
                 return node_intersect.shader.get_color(self, ray, node_intersect.get_hit_point(), node_intersect.get_surface_normal());
@@ -33,7 +33,7 @@ impl Scene {
     }
 
     pub fn cast_ray_get_distance(&self, ray: Ray) -> (f64, Color) {
-        if ray.depth > 0 {
+        if ray.get_depth() > 0 && ray.get_contribution() > Ray::MIN_CONTRIBUTION {
             let node_intersect = self.root.trace(ray);
             if let Some(node_intersect) = node_intersect {
                 return (node_intersect.get_distance(), 

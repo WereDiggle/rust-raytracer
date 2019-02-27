@@ -52,7 +52,7 @@ impl Shadable for CompositeShader {
     fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
         let mut total_color = Color::BLACK;
         for (weight, shader) in self.shaders.iter() {
-            total_color += *weight * shader.get_color(scene, ray, hit_point, surface_normal);
+            total_color += *weight * shader.get_color(scene, ray.contributes(*weight*Color::WHITE), hit_point, surface_normal);
         }
         total_color
     }
@@ -188,9 +188,8 @@ impl ReflectionShader {
 impl Shadable for ReflectionShader {
     fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
         let reflected_ray = ray.reflect_off(hit_point, surface_normal);
-        self.reflectivity * scene.cast_ray(reflected_ray)
+        self.reflectivity * scene.cast_ray(reflected_ray.contributes(self.reflectivity))
     }
-
 }
 
 #[derive(Clone)]
@@ -209,10 +208,9 @@ impl TranslucentShader {
 impl Shadable for TranslucentShader {
     fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
         let transmitted_ray = ray.transmit_through(hit_point, surface_normal, self.refractive_index);
-        let (distance, color) = scene.cast_ray_get_distance(transmitted_ray);
-        let opacity = Color::WHITE - self.translucency;
+        let color = scene.cast_ray(transmitted_ray.contributes(self.translucency));
         if surface_normal.dot(transmitted_ray.direction) < 0.0 {
-            (Color::WHITE - (opacity * distance)).clamp() * color
+            self.translucency * color
         }
         else {
             color
