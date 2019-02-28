@@ -36,10 +36,6 @@ fn light2() -> Box<PointLight> {
     Box::new(PointLight::new(dvec3!(100.0, 300.0, -300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
 }
 
-fn no_ambient() -> AmbientLight {
-    AmbientLight::new(Color::WHITE, 0.0)
-}
-
 #[test]
 fn many_weirds() {
     let scene = build_scene(

@@ -13,9 +13,12 @@ fn light2() -> Box<PointLight> {
     Box::new(PointLight::new(dvec3!(100.0, 300.0, -300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
 }
 
+fn default_material(color: Color) -> Box<PhongShader> {
+    PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0)
+}
+
 #[test]
-fn sphere_texture() {
-    let sphere_size: f64 = 80.0;
+fn texture_room() {
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
@@ -23,24 +26,30 @@ fn sphere_texture() {
         scene_node(
             DMat4::identity(),
             vec!(
-                create_room(700.0, RoomColorScheme {
-                    ceiling: Color::RED,
-                    floor: Color::GREEN,
-                    front: Color::BLUE,
-                    back: Color::CYAN,
-                    left: Color::MAGENTA,
-                    right: Color::YELLOW,
+                create_room_from_material(700.0, RoomMaterialScheme {
+                    ceiling: default_material(Color::RED),
+                    floor: texture_phong_material("assets/images/textures/wood_boards.jpg", 1.0, 0.0, 0.0, 1.0),
+                    front: texture_phong_material("assets/images/textures/brick_wall.jpg", 1.0, 0.0, 0.0, 1.0),
+                    back: default_material(Color::CYAN),
+                    left: texture_phong_material("assets/images/textures/orange_leather.jpg", 1.0, 0.0, 0.0, 1.0),
+                    right: ReflectionShader::new(Color::WHITE),
                 }),
                 geometry_node(
-                    translation(0.0, 0.0, 40.0),
+                    translation(-150.0, -270.0, 40.0),
                     texture_phong_material("assets/images/textures/denim.jpg", 1.0, 0.0, 0.0, 1.0),
-                    Box::new(Sphere::new(sphere_size)),
+                    Box::new(Sphere::new(80.0)),
+                    vec!(),
+                ),
+                geometry_node(
+                    translation(150.0, -270.0, 40.0),
+                    texture_phong_material("assets/images/textures/cube_rgb_gradient.png", 0.5, 0.5, 0.0, 4.0),
+                    Box::new(Cube::new(160.0)),
                     vec!(),
                 ),
             ),
         ),
     );
 
-    let image = render(scene, image(1920, 1080), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]));
-    write_to_png( image, "output/texture_sphere");
+    let image = render(scene, image(5000, 5000), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
+    write_to_png( image, "output/texture_room");
 }

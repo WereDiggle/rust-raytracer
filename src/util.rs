@@ -80,6 +80,14 @@ pub fn slightly_shiney(color: Color) -> Box<PhongShader> {
     return PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0);
 }
 
+pub fn create_wall_from_material(size: f64, material: Box<Shadable + Send + Sync>, transform: DMat4) -> SceneNode {
+    let mut wall = SceneNode::new();
+    wall.set_primitive(Box::new(RectangularPlane::new(size, size)));
+    wall.set_material(material);
+    wall.set_transform(transform);
+    wall
+}
+
 pub fn create_wall(size: f64, color: Color, transform: DMat4) -> SceneNode {
     let mut wall = SceneNode::new();
     wall.set_primitive(Box::new(RectangularPlane::new(size, size)));
@@ -107,6 +115,39 @@ pub fn create_mirror(size: f64, color: Color, transform: DMat4) -> SceneNode {
     wall
 }
 
+#[derive(Clone)]
+pub struct RoomMaterialScheme {
+    pub ceiling: Box<Shadable + Send + Sync>,
+    pub floor: Box<Shadable + Send + Sync>,
+    pub front: Box<Shadable + Send + Sync>,
+    pub back: Box<Shadable + Send + Sync>,
+    pub left: Box<Shadable + Send + Sync>,
+    pub right: Box<Shadable + Send + Sync>,
+}
+
+
+pub fn create_room_from_material(size: f64, room_mat: RoomMaterialScheme) -> Box<SceneNode> {
+    let mut interior_box = SceneNode::new();
+
+    let floor = create_wall_from_material(size*1.01, room_mat.floor, rotation(Axis::X, -90.0) * translation(0.0, 0.0, -size/2.0));
+    let ceiling = create_wall_from_material(size*1.01, room_mat.ceiling, rotation(Axis::X, 90.0) * translation(0.0, 0.0, -size/2.0));
+
+    let front = create_wall_from_material(size*1.01, room_mat.front, translation(0.0, 0.0, -size/2.0));
+    let back = create_wall_from_material(size*1.01, room_mat.back, rotation(Axis::X, 180.0) * translation(0.0, 0.0, -size/2.0));
+
+    let left = create_wall_from_material(size*1.01, room_mat.left, rotation(Axis::Y, 90.0) * translation(0.0, 0.0, -size/2.0));
+    let right = create_wall_from_material(size*1.01, room_mat.right, rotation(Axis::Y, -90.0) * translation(0.0, 0.0, -size/2.0));
+
+    interior_box.add_child(Box::new(ceiling));
+    interior_box.add_child(Box::new(floor));
+    interior_box.add_child(Box::new(front));
+    interior_box.add_child(Box::new(back));
+    interior_box.add_child(Box::new(left));
+    interior_box.add_child(Box::new(right));
+
+    Box::new(interior_box)
+}
+
 #[derive(Clone, Copy)]
 pub struct RoomColorScheme {
     pub ceiling: Color,
@@ -120,8 +161,8 @@ pub struct RoomColorScheme {
 pub fn create_room(size: f64, room_color: RoomColorScheme) -> Box<SceneNode> {
     let mut interior_box = SceneNode::new();
 
-    let ceiling = create_wall(size*1.01, room_color.ceiling, rotation(Axis::X, -90.0) * translation(0.0, 0.0, -size/2.0));
-    let floor = create_wall(size*1.01, room_color.floor, rotation(Axis::X, 90.0) * translation(0.0, 0.0, -size/2.0));
+    let floor = create_wall(size*1.01, room_color.floor, rotation(Axis::X, -90.0) * translation(0.0, 0.0, -size/2.0));
+    let ceiling = create_wall(size*1.01, room_color.ceiling, rotation(Axis::X, 90.0) * translation(0.0, 0.0, -size/2.0));
 
     let front = create_wall(size*1.01, room_color.front, translation(0.0, 0.0, -size/2.0));
     let back = create_wall(size*1.01, room_color.back, rotation(Axis::X, 180.0) * translation(0.0, 0.0, -size/2.0));
