@@ -1,13 +1,14 @@
 use scene::Scene;
 use scene::Traceable;
+use texture::TextureMappable;
 use color::Color;
 use euler::DVec3;
-use geometry::Ray;
+use geometry::{Intersect, Ray, SurfaceCoord};
 use std::collections::HashMap;
 use snowflake::ProcessUniqueId;
 
 pub trait Shadable: ShadableClone {
-    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color;
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color;
 
     fn get_opacity(&self) -> Color {
         Color::WHITE
@@ -34,13 +35,38 @@ impl Clone for Box<Shadable + Send + Sync> {
 }
 
 #[derive(Clone)]
+pub struct MixShader {
+    shaders: Vec<Box<Shadable + Send + Sync>>,
+}
+
+impl MixShader {
+    pub fn from_shaders(shaders: Vec<Box<Shadable + Send + Sync>>) -> Box<MixShader> {
+        Box::new(MixShader{shaders})
+    }
+
+    pub fn add_shader(&mut self, shader: Box<Shadable + Send + Sync>) {
+        self.shaders.push(shader);
+    }
+}
+
+impl Shadable for MixShader {
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
+        self.shaders.iter().fold(Color::WHITE, |acc, x| acc*x.get_color(&scene, intersect.contributes(acc)))
+    }
+
+    fn get_opacity(&self) -> Color {
+        self.shaders.iter().fold(Color::WHITE, |acc, x| acc*x.get_opacity())
+    }
+}
+
+#[derive(Clone)]
 pub struct CompositeShader {
     shaders: Vec<(f64, Box<Shadable + Send + Sync>)>,
 }
 
 impl CompositeShader {
-    pub fn new() -> CompositeShader {
-        CompositeShader{shaders: Vec::new()}
+    pub fn new() -> Box<CompositeShader> {
+        Box::new(CompositeShader{shaders: Vec::new()})
     }
 
     pub fn add_shader(&mut self, weight: f64, shader: Box<Shadable + Send + Sync>) {
@@ -49,10 +75,10 @@ impl CompositeShader {
 }
 
 impl Shadable for CompositeShader {
-    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
         let mut total_color = Color::BLACK;
         for (weight, shader) in self.shaders.iter() {
-            total_color += *weight * shader.get_color(scene, ray.contributes(*weight*Color::WHITE), hit_point, surface_normal);
+            total_color += *weight * shader.get_color(scene, intersect.contributes(*weight*Color::WHITE));
         }
         total_color
     }
@@ -75,8 +101,8 @@ pub struct PhongShader {
 }
 
 impl PhongShader {
-    pub fn new(diffuse: Color, specular: Color, ambient: Color, shininess: f64) -> PhongShader {
-        PhongShader{diffuse, specular, ambient, shininess}
+    pub fn new(diffuse: Color, specular: Color, ambient: Color, shininess: f64) -> Box<PhongShader> {
+        Box::new(PhongShader{diffuse, specular, ambient, shininess})
     }
 }
 
@@ -93,18 +119,18 @@ fn total_light_blocked(opacity: Color, enter: f64, exit: f64) -> Color {
 }
 
 impl Shadable for PhongShader {
-    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
-        assert!(surface_normal.length() - 1.0 < 0.000001);
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
+        assert!(intersect.surface_normal.length() - 1.0 < 0.000001);
         let mut total_color = self.ambient * scene.ambient_light.color_intensity();
         for light in &scene.lights {
-            let light_direction = -1.0 * light.get_direction_to(hit_point);
-            let light_surface_dot = light_direction.dot(surface_normal);
+            let light_direction = -1.0 * light.get_direction_to(intersect.hit_point);
+            let light_surface_dot = light_direction.dot(intersect.surface_normal);
             if light_surface_dot <= 0.0 {
                 continue;
             }
 
-            let shadow_ray = Ray::new(hit_point, light_direction, 1);
-            let light_distance = light.get_distance_to(hit_point);
+            let shadow_ray = Ray::new(intersect.hit_point, light_direction, 1);
+            let light_distance = light.get_distance_to(intersect.hit_point);
 
             let mut light_through = Color::WHITE;
             let mut shadow_intersects = scene.root.total_trace_until_distance(shadow_ray, light_distance);
@@ -162,8 +188,8 @@ impl Shadable for PhongShader {
             }
             light_through = light_through.clamp();
 
-            let reflection_direction = (2.0*light_surface_dot*surface_normal - light_direction).normalize();
-            let specular_factor = reflection_direction.dot(-1.0*ray.direction).max(0.0).powf(self.shininess) / light_surface_dot;
+            let reflection_direction = (2.0*light_surface_dot*intersect.surface_normal - light_direction).normalize();
+            let specular_factor = reflection_direction.dot(-1.0*intersect.ray.direction).max(0.0).powf(self.shininess) / light_surface_dot;
             let phong_color = self.specular * specular_factor + self.diffuse;
             //let falloff_factor = light_surface_dot / (light.falloff.0 + light.falloff.1*light_distance + light.falloff.2*light_distance*light_distance);
             //total_color += phong_color * light.color_intensity() * light_through * falloff_factor;
@@ -180,14 +206,14 @@ pub struct ReflectionShader {
 }
 
 impl ReflectionShader {
-    pub fn new(reflectivity: Color) -> ReflectionShader {
-        ReflectionShader{reflectivity}
+    pub fn new(reflectivity: Color) -> Box<ReflectionShader> {
+        Box::new(ReflectionShader{reflectivity})
     }
 }
 
 impl Shadable for ReflectionShader {
-    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
-        let reflected_ray = ray.reflect_off(hit_point, surface_normal);
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
+        let reflected_ray = intersect.ray.reflect_off(intersect.hit_point, intersect.surface_normal);
         self.reflectivity * scene.cast_ray(reflected_ray.contributes(self.reflectivity))
     }
 }
@@ -200,16 +226,16 @@ pub struct TranslucentShader {
 }
 
 impl TranslucentShader {
-    pub fn new(translucency: Color, refractive_index: f64) -> TranslucentShader {
-        TranslucentShader{translucency, refractive_index}
+    pub fn new(translucency: Color, refractive_index: f64) -> Box<TranslucentShader> {
+        Box::new(TranslucentShader{translucency, refractive_index})
     }
 }
 
 impl Shadable for TranslucentShader {
-    fn get_color(&self, scene: &Scene, ray: Ray, hit_point: DVec3, surface_normal: DVec3) -> Color {
-        let transmitted_ray = ray.transmit_through(hit_point, surface_normal, self.refractive_index);
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
+        let transmitted_ray = intersect.ray.transmit_through(intersect.hit_point, intersect.surface_normal, self.refractive_index);
         let color = scene.cast_ray(transmitted_ray.contributes(self.translucency));
-        if surface_normal.dot(transmitted_ray.direction) < 0.0 {
+        if intersect.surface_normal.dot(transmitted_ray.direction) < 0.0 {
             self.translucency * color
         }
         else {
@@ -219,5 +245,24 @@ impl Shadable for TranslucentShader {
 
     fn get_opacity(&self) -> Color {
         Color::WHITE - self.translucency
+    }
+}
+
+#[derive(Clone)]
+pub struct TextureShader {
+    texture: Box<TextureMappable + Send + Sync>,
+}
+
+impl TextureShader {
+    pub fn new(texture: Box<TextureMappable + Send + Sync>) -> Box<TextureShader> {
+        Box::new(TextureShader {
+            texture,
+        })
+    } 
+}
+
+impl Shadable for TextureShader {
+    fn get_color(&self, _: &Scene, intersect: Intersect) -> Color {
+        self.texture.get_color(intersect.surface_coord)
     }
 }

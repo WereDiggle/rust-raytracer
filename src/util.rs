@@ -1,6 +1,19 @@
 use super::*;
 use euler::*;
 
+pub fn texture_phong_material(path: &str, diffuse: f64, specular: f64, ambient: f64, shininess: f64) -> Box<MixShader> {
+    MixShader::from_shaders(
+        vec!(
+            TextureShader::new(ImageTexture::from_path(path)),
+            PhongShader::new(Color::WHITE*diffuse, Color::WHITE*specular, Color::WHITE*ambient, shininess),
+        ),
+    )
+}
+
+pub fn no_ambient() -> AmbientLight {
+    AmbientLight::new(Color::WHITE, 0.0)
+}
+
 pub fn build_scene(lights: Vec<Box<Lightable + Send + Sync>>, 
                    ambient_light: AmbientLight,
                    background: Option<SkyBox>,
@@ -60,17 +73,17 @@ pub fn camera(origin: [f64; 3], target: [f64; 3]) -> CameraConfig {
 }
 
 pub fn basic_diffuse(color: Color) -> Box<PhongShader> {
-    return Box::new(PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0));
+    return PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0);
 }
 
 pub fn slightly_shiney(color: Color) -> Box<PhongShader> {
-    return Box::new(PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0));
+    return PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0);
 }
 
 pub fn create_wall(size: f64, color: Color, transform: DMat4) -> SceneNode {
     let mut wall = SceneNode::new();
     wall.set_primitive(Box::new(RectangularPlane::new(size, size)));
-    wall.set_material(Box::new(PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0)));
+    wall.set_material(PhongShader::new(color*1.0, color*0.0, color*0.0, 1.0));
     wall.set_transform(transform);
     wall
 }
@@ -79,9 +92,9 @@ pub fn create_floor(size: f64, color: Color) -> Box<SceneNode> {
     let mut floor = SceneNode::new();
     floor.set_primitive(Box::new(RectangularPlane::new(size, size)));
     let mut comp = CompositeShader::new();
-    comp.add_shader(0.8, Box::new(PhongShader::new(color*1.0, color*0.0, color*0.1, 1.0)));
-    comp.add_shader(0.2, Box::new(ReflectionShader::new(color*1.0)));
-    floor.set_material(Box::new(comp));
+    comp.add_shader(0.8, PhongShader::new(color*1.0, color*0.0, color*0.1, 1.0));
+    comp.add_shader(0.2, ReflectionShader::new(color*1.0));
+    floor.set_material(comp);
     floor.set_transform(rotation(Axis::X, -90.0));
     Box::new(floor)
 }
@@ -89,7 +102,7 @@ pub fn create_floor(size: f64, color: Color) -> Box<SceneNode> {
 pub fn create_mirror(size: f64, color: Color, transform: DMat4) -> SceneNode {
     let mut wall = SceneNode::new();
     wall.set_primitive(Box::new(RectangularPlane::new(size, size)));
-    wall.set_material(Box::new(ReflectionShader::new(color*1.0)));
+    wall.set_material(ReflectionShader::new(color*1.0));
     wall.set_transform(transform);
     wall
 }
@@ -173,7 +186,7 @@ pub fn create_interior_mirror_box(size: f64) -> SceneNode {
 pub fn create_cube(size: f64, transform: DMat4, color: Color) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(Cube::new(size)));
-    sphere.set_material(Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0)));
+    sphere.set_material(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
     sphere.set_transform(transform);
     sphere
 }
@@ -181,7 +194,7 @@ pub fn create_cube(size: f64, transform: DMat4, color: Color) -> SceneNode {
 pub fn create_translucent_cube(size: f64, transform: DMat4, color: Color, refractive_index: f64) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(Cube::new(size)));
-    sphere.set_material(Box::new(TranslucentShader::new(color*1.0, refractive_index)));
+    sphere.set_material(TranslucentShader::new(color*1.0, refractive_index));
     sphere.set_transform(transform);
     sphere
 }
@@ -189,7 +202,7 @@ pub fn create_translucent_cube(size: f64, transform: DMat4, color: Color, refrac
 pub fn create_translucent_sphere(size: f64, transform: DMat4, color: Color, refractive_index: f64) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
-    sphere.set_material(Box::new(TranslucentShader::new(color*1.0, refractive_index)));
+    sphere.set_material(TranslucentShader::new(color*1.0, refractive_index));
     sphere.set_transform(transform);
     sphere
 }
@@ -197,7 +210,7 @@ pub fn create_translucent_sphere(size: f64, transform: DMat4, color: Color, refr
 pub fn create_mirror_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
-    sphere.set_material(Box::new(ReflectionShader::new(color*1.0)));
+    sphere.set_material(ReflectionShader::new(color*1.0));
     sphere.set_transform(transform);
     sphere
 }
@@ -205,10 +218,9 @@ pub fn create_mirror_sphere(size: f64, transform: DMat4, color: Color) -> SceneN
 pub fn create_comp_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(OneWay::new(Box::new(Sphere::new(size)))));
-    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
-    //let glass = Box::new(TranslucentShader::new(Color::WHITE, 1.52));
-    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
-    let mut comp = Box::new(CompositeShader::new());
+    let phong = PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0);
+    let reflect = ReflectionShader::new(Color::WHITE);
+    let mut comp = CompositeShader::new();
     comp.add_shader(0.8, phong);
     comp.add_shader(0.2, reflect);
     sphere.set_material(comp);
@@ -270,10 +282,9 @@ pub fn create_weird(size: f64, offset: f64) -> Box<SubtractShape> {
 pub fn create_comp_weird(size: f64, transform: DMat4, color: Color) -> Box<SceneNode> {
     let mut weird = SceneNode::new();
     weird.set_primitive(create_weird(size, size));
-    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
-    //let glass = Box::new(TranslucentShader::new(Color::WHITE, 1.52));
-    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
-    let mut comp = Box::new(CompositeShader::new());
+    let phong = PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0);
+    let reflect = ReflectionShader::new(Color::WHITE);
+    let mut comp = CompositeShader::new();
     comp.add_shader(0.8, phong);
     comp.add_shader(0.2, reflect);
     weird.set_material(comp);
@@ -284,7 +295,7 @@ pub fn create_comp_weird(size: f64, transform: DMat4, color: Color) -> Box<Scene
 pub fn create_sphere(size: f64, transform: DMat4, color: Color) -> SceneNode {
     let mut sphere = SceneNode::new();
     sphere.set_primitive(Box::new(Sphere::new(size)));
-    sphere.set_material(Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0)));
+    sphere.set_material(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
     sphere.set_transform(transform);
     sphere
 }

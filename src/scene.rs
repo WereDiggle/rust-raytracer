@@ -68,7 +68,7 @@ impl Scene {
         if ray.get_depth() > 0 && ray.get_contribution() > Ray::MIN_CONTRIBUTION {
             let node_intersect = self.root.trace(ray);
             if let Some(node_intersect) = node_intersect {
-                return node_intersect.shader.get_color(self, ray, node_intersect.get_hit_point(), node_intersect.get_surface_normal());
+                return node_intersect.shader.get_color(self, node_intersect.intersect);
             }
         }
         self.get_background_color(ray)
@@ -79,7 +79,7 @@ impl Scene {
             let node_intersect = self.root.trace(ray);
             if let Some(node_intersect) = node_intersect {
                 return (node_intersect.get_distance(), 
-                        node_intersect.shader.get_color(self, ray, node_intersect.get_hit_point(), node_intersect.get_surface_normal()));
+                        node_intersect.shader.get_color(self, node_intersect.intersect));
             }
         }
         (f64::INFINITY, self.get_background_color(ray))
@@ -155,7 +155,7 @@ impl SceneNode {
         SceneNode {
             id: ProcessUniqueId::new(),
             primitive: None, 
-            material: Box::new(default_shader),
+            material: default_shader,
             transform: TransformComponent::new(DMat4::identity()),
             children: Vec::new(),
         }

@@ -213,6 +213,16 @@ impl Intersect {
         }
     }
 
+    pub fn contributes(&self, percentage: Color) -> Intersect {
+        Intersect {
+            ray: self.ray.contributes(percentage),
+            distance: self.distance,
+            hit_point: self.hit_point,
+            surface_normal: self.surface_normal,
+            surface_coord: self.surface_coord,
+        }
+    }
+
     pub fn invert_normal(&self) -> Intersect {
         Intersect {
             ray: self.ray,

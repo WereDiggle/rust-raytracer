@@ -18,11 +18,11 @@ fn no_ambient() -> AmbientLight {
 }
 
 fn clear_material() -> Box<TranslucentShader> {
-    Box::new(TranslucentShader::new(Color::WHITE, 1.52))
+    TranslucentShader::new(Color::WHITE, 1.52)
 }
 
 fn diffuse_material() -> Box<PhongShader> {
-    Box::new(PhongShader::new(Color::WHITE*1.0, Color::WHITE*0.0, Color::WHITE*0.0, 1.0))
+    PhongShader::new(Color::WHITE*1.0, Color::WHITE*0.0, Color::WHITE*0.0, 1.0)
 }
 
 fn make_half_sphere(size: f64) -> Box<SubtractShape> {

@@ -66,11 +66,11 @@ fn many_weirds() {
 }
 
 fn default_material(color: Color) -> Box<PhongShader> {
-    Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0))
+    PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0)
 }
 
 fn clear_material() -> Box<TranslucentShader> {
-    Box::new(TranslucentShader::new(Color::WHITE, 1.52))
+    TranslucentShader::new(Color::WHITE, 1.52)
 }
 
 fn make_spikey_thing(size: f64) -> Box<SubtractShape> {
@@ -181,14 +181,14 @@ fn subtraction_room() {
 }
 
 #[test]
-fn subtraction_outside() {
+fn subtraction_outside1() {
     let sphere_size: f64 = 80.0;
     let scene = build_scene(
         vec!(light1(), light2()),
         no_ambient(),
         Some(SkyBox::from_path(
             "assets/images/backgrounds/building.jpg",
-            rotation(Axis::Y, 22.0),
+            rotation(Axis::Y, 0.0),
         )),
         scene_node(
             DMat4::identity(),
@@ -259,9 +259,9 @@ fn make_round_cube(size: f64) -> Box<AndShape> {
 }
 
 fn shiney_material(color: Color) -> Box<CompositeShader> {
-    let mut comp_material = Box::new(CompositeShader::new());
-    let phong = Box::new(PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0));
-    let reflect = Box::new(ReflectionShader::new(Color::WHITE));
+    let mut comp_material = CompositeShader::new();
+    let phong = PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0);
+    let reflect = ReflectionShader::new(Color::WHITE);
     comp_material.add_shader(0.8, phong);
     comp_material.add_shader(0.2, reflect);
     comp_material
