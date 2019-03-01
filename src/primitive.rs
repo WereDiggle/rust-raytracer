@@ -236,18 +236,18 @@ pub struct Cube {
 }
 
 impl Cube {
-    const texture_offsets: [(f64, f64); 6] = [(0.0, 1.0), (2.0, 1.0), (1.0, 1.0), (3.0, 1.0), (1.0, 2.0), (1.0, 0.0)];
+    const texture_offsets: [(f64, f64); 6] = [(2.0, 1.0), (0.0, 1.0), (1.0, 1.0), (3.0, 1.0), (1.0, 2.0), (1.0, 0.0)];
 
     pub fn new(length: f64) -> Cube {
         let mut matrices: [DMat4; 6] = [DMat4::identity(); 6];  
         let base_plane = RectangularPlane::new(length, length);
 
-        matrices[0] = translation(length/2.0, 0.0, 0.0) * rotation(Axis::Y, 90.0);
-        matrices[1] = translation(-length/2.0, 0.0, 0.0) * rotation(Axis::Y, -90.0);
-        matrices[2] = translation(0.0, 0.0, length/2.0);
-        matrices[3] = translation(0.0, 0.0, -length/2.0) * reflection(Axis::Z);
-        matrices[4] = translation(0.0, length/2.0, 0.0) * rotation(Axis::X, -90.0);
-        matrices[5] = translation(0.0, -length/2.0, 0.0) * rotation(Axis::X, 90.0);
+        matrices[0] = rotation(Axis::Y, 90.0) * translation(0.0, 0.0, length/2.0);      // right
+        matrices[1] = rotation(Axis::Y, -90.0) * translation(0.0, 0.0, length/2.0);     // left
+        matrices[2] = translation(0.0, 0.0, length/2.0);                                // front
+        matrices[3] = rotation(Axis::Y, 180.0) * translation(0.0, 0.0, length/2.0);     // back
+        matrices[4] = rotation(Axis::X, -90.0) * translation(0.0, 0.0, length/2.0);     // top
+        matrices[5] = rotation(Axis::X, 90.0) * translation(0.0, 0.0, length/2.0);      // bottom
 
         let mut inverse_matrices: [DMat4; 6] = [DMat4::identity(); 6];
         for i in 0..6 {
