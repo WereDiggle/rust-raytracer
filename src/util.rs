@@ -293,6 +293,34 @@ pub fn and_shape(transform: DMat4, primary: Box<Compositable + Send + Sync>, sec
     Box::new(shape)
 }
 
+pub fn reuleaux_tetrahedron(transform: DMat4, size: f64) -> Box<MultiAndShape> {
+    let radius = (2.0*size.powi(2)).sqrt();
+    let spheres: Vec<Box<Compositable + Send + Sync>> = vec!(
+        base_shape(translation(-size/2.0, -size/2.0, size/2.0), Sphere::from_radius(radius)),
+        base_shape(translation(size/2.0, size/2.0, size/2.0), Sphere::from_radius(radius)),
+        base_shape(translation(-size/2.0, size/2.0, -size/2.0), Sphere::from_radius(radius)),
+        base_shape(translation(size/2.0, -size/2.0, -size/2.0), Sphere::from_radius(radius)),
+    );
+    let mut tetra = MultiAndShape::from_vec(spheres);
+    /*
+    let mut tetra = and_shape(
+        DMat4::identity(),
+        and_shape(
+            DMat4::identity(),
+            base_shape(translation(-size/2.0, -size/2.0, size/2.0), Sphere::from_radius(radius)),
+            base_shape(translation(size/2.0, size/2.0, size/2.0), Sphere::from_radius(radius)),
+        ),
+        and_shape(
+            DMat4::identity(),
+            base_shape(translation(-size/2.0, size/2.0, -size/2.0), Sphere::from_radius(radius)),
+            base_shape(translation(size/2.0, -size/2.0, -size/2.0), Sphere::from_radius(radius)),
+        ),
+    );
+    */
+    tetra.set_transform(transform);
+    Box::new(tetra)
+}
+
 pub fn base_shape(transform: DMat4, primitive: Box<Intersectable + Send + Sync>) -> Box<BaseShape> {
     Box::new(BaseShape::new(transform, primitive))
 }

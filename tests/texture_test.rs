@@ -28,14 +28,14 @@ fn default_material(color: Color) -> Box<PhongShader> {
 #[test]
 fn texture_room() {
     let scene = build_scene(
-        vec!(light1(), light2()),
+        vec!(light1(), light2(), light3()),
         no_ambient(),
         None,
         scene_node(
             DMat4::identity(),
             vec!(
                 create_room_from_material(700.0, RoomMaterialScheme {
-                    ceiling: default_material(Color::RED),
+                    ceiling: texture_phong_material("assets/images/textures/granite.jpg", 4.0, 6.0, 0.0, 2.0),
                     floor: texture_phong_material("assets/images/textures/wood_boards.jpg", 1.0, 0.0, 0.0, 1.0),
                     front: texture_phong_material("assets/images/textures/brick_wall.jpg", 1.0, 0.0, 0.0, 1.0),
                     back: default_material(Color::CYAN),
@@ -43,13 +43,13 @@ fn texture_room() {
                     right: ReflectionShader::new(Color::WHITE),
                 }),
                 geometry_node(
-                    translation(-150.0, -270.0, 40.0),
-                    texture_phong_material("assets/images/textures/denim.jpg", 1.0, 0.0, 0.0, 1.0),
+                    translation(-150.0, -270.0, 0.0),
+                    texture_phong_material("assets/images/textures/orange_leather.jpg", 1.0, 0.0, 0.0, 1.0),
                     Box::new(Sphere::new(80.0)),
                     vec!(),
                 ),
                 geometry_node(
-                    translation(150.0, -270.0, 40.0),
+                    translation(150.0, -270.0, 80.0),
                     texture_phong_material("assets/images/textures/cube_rgb_gradient.png", 0.5, 0.5, 0.0, 4.0),
                     Box::new(Cube::new(160.0)),
                     vec!(),

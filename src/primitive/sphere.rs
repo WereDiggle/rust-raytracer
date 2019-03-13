@@ -6,8 +6,17 @@ pub struct Sphere {
 }
 
 impl Sphere {
+    // TODO: remove
     pub fn new(radius: f64) -> Sphere {
         Sphere {radius}
+    }
+
+    pub fn from_radius(radius: f64) -> Box<Sphere> {
+        Box::new(Sphere{radius})
+    }
+
+    pub fn from_diameter(diameter: f64) -> Box<Sphere> {
+        Box::new(Sphere{radius: diameter/2.0})
     }
 
     fn get_surface_coord(hit_point: DVec3) -> SurfaceCoord {
@@ -89,3 +98,4 @@ impl Intersectable for Sphere {
         ret_intersects
     }
 }
+

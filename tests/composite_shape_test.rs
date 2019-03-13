@@ -367,3 +367,35 @@ fn subtraction_outside4() {
     let image = render_with_config(scene, image(5000, 5000), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
     write_to_png( image, "output/subtraction_outside4");
 }
+
+#[test]
+fn reuleaux() {
+    let size: f64 = 100.0;
+    let scene = build_scene(
+        vec!(light1(), light2()),
+        no_ambient(),
+        Some(SkyBox::from_path(
+            "assets/images/backgrounds/building.jpg",
+            rotation(Axis::Y, 200.0),
+        )),
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    translation(10.0, 0.0, 40.0),
+                    default_material(Color::RED),
+                    reuleaux_tetrahedron(
+                        DMat4::identity(),
+                        size,
+                    ),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let mut render_config = RenderConfig::default();
+    render_config.anti_alias = true;
+    let image = render_with_config(scene, image(512, 512), camera([-200.0, 350.0, 50.0], [10.0, 0.0, 40.0]), render_config);
+    write_to_png( image, "output/reuleaux");
+}

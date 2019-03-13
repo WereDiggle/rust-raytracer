@@ -72,7 +72,7 @@ fn merge(A: Vec<(usize, Hit, Intersect)>, B: Vec<(usize, Hit, Intersect)>) -> Ve
 }
 
 // General function for calculating the intersections of any boolean operation
-fn calculate_intersects(comp: &(Compositable + Send + Sync), ray: Ray, mut check_get: &mut FnMut(usize, &Vec<bool>, Intersect) -> Control) 
+fn calculate_intersects(comp: &(Compositable + Send + Sync), ray: Ray, check_get: &mut FnMut(usize, &Vec<bool>, Intersect) -> Control) 
 {
 
     let ray = ray.transform(comp.get_inverse_transform());
