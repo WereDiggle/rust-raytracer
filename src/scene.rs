@@ -1,4 +1,4 @@
-use euler::DMat4;
+use euler::{dvec3, DVec3, DMat4};
 use color::Color;
 use light::{Lightable, AmbientLight};
 use geometry::{matrix, NodeIntersect, Intersectable, Transformable, TransformComponent, Ray};
@@ -57,11 +57,18 @@ pub struct Scene {
     pub lights: Vec<Box<Lightable + Send + Sync>>,
     pub ambient_light: AmbientLight,
     pub background: Option<SkyBox>,
+    pub up: DVec3,
 }
 
 impl Scene {
     pub fn new() -> Scene {
-        Scene{ root: Box::new(SceneNode::new()), lights: Vec::new(), ambient_light: AmbientLight::new(Color::BLACK, 0.0), background: None}
+        Scene { 
+            root: Box::new(SceneNode::new()), 
+            lights: Vec::new(), 
+            ambient_light: AmbientLight::new(Color::BLACK, 0.0), 
+            background: None, 
+            up: dvec3!(0.0, 1.0, 0.0)
+        }
     }
 
     pub fn cast_ray(&self, ray: Ray) -> Color {

@@ -15,6 +15,7 @@ pub mod render;
 pub mod composite_shape;
 pub mod util;
 pub mod texture;
+pub mod normal_map;
 
 use image::{RgbImage};
 pub use color::*;
@@ -29,6 +30,7 @@ pub use geometry::*;
 pub use util::*;
 pub use geometry::matrix::*;
 pub use texture::*;
+pub use normal_map::*;
 
 // TODO: make this more robust, so it creates directories as well
 pub fn write_to_png(img: RgbImage, file_name: &str) {

@@ -1,6 +1,7 @@
 use scene::Scene;
 use scene::Traceable;
 use texture::TextureMappable;
+use normal_map::NormalMappable;
 use color::Color;
 use euler::DVec3;
 use geometry::{Intersect, Ray, SurfaceCoord};
@@ -22,6 +23,10 @@ pub trait Shadable: ShadableClone {
 
     fn get_opacity(&self) -> Color {
         Color::WHITE
+    }
+
+    fn modify_intersect(&self, _: &Scene, intersect: Intersect) -> Intersect {
+        intersect
     }
 }
 
@@ -99,5 +104,70 @@ impl Shadable for CompositeShader {
             total_opacity += *weight * shader.get_opacity();
         }
         total_opacity
+    }
+}
+
+#[derive(Clone)]
+pub struct ChainShader {
+    shaders: Vec<Box<Shadable + Send + Sync>>,
+}
+
+impl ChainShader {
+    pub fn new() -> Box<ChainShader> {
+        Box::new(ChainShader{
+            shaders: Vec::new()
+        })
+    }
+
+    pub fn push_shader(&mut self, shader: Box<Shadable + Send + Sync>) {
+        self.shaders.push(shader);
+    }
+}
+
+impl Shadable for ChainShader {
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
+        let intersect = self.modify_intersect(scene, intersect);
+
+        if let Some(shader) = self.shaders.last() {
+            shader.get_color(scene, intersect)
+        }
+        else {
+            panic!("Chain Shader needs at least one shader to function")
+        }
+    }
+
+    fn modify_intersect(&self, scene: &Scene, intersect: Intersect) -> Intersect {
+        let mut cur_intersect = intersect;
+        for shader in self.shaders.iter() {
+            cur_intersect = shader.modify_intersect(scene, cur_intersect);
+        }
+        cur_intersect
+    } 
+}
+
+#[derive(Clone)]
+pub struct NormalMapShader {
+    normal_map: Box<NormalMappable + Send + Sync>,
+}
+
+impl NormalMapShader {
+    pub fn new(normal_map: Box<NormalMappable + Send + Sync>) -> Box<NormalMapShader> {
+        Box::new(NormalMapShader {
+            normal_map,
+        })
+    } 
+}
+
+// We basically want to edit the intersect
+impl Shadable for NormalMapShader {
+    fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
+        let normal = self.normal_map.calculate_normal(intersect.surface_coord, intersect.surface_normal, scene.up);
+        Color::new(normal.x, normal.y, normal.z)
+    }
+
+    fn modify_intersect(&self, scene: &Scene, intersect: Intersect) -> Intersect {
+        let mut intersect = intersect.clone();
+        intersect.surface_normal = self.normal_map.calculate_normal(intersect.surface_coord, intersect.surface_normal, scene.up);
+        intersect
     }
 }

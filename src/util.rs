@@ -10,6 +10,24 @@ pub fn texture_phong_material(path: &str, diffuse: f64, specular: f64, ambient: 
     )
 }
 
+pub fn brick_shader() -> Box<ChainShader> {
+    let mut brick_shader = ChainShader::new();
+    brick_shader.push_shader(
+        NormalMapShader::new(
+            NormalMap::from_path("assets/images/normal_maps/test.png")
+        )
+    );
+    /*
+    brick_shader.push_shader(
+        texture_phong_material("assets/images/textures/brick_wall.jpg", 0.9, 0.1, 0.0, 2.0)
+    );
+    */
+    brick_shader.push_shader(
+        PhongShader::new(Color::WHITE*0.9, Color::WHITE*0.1, Color::WHITE*0.0, 2.0)
+    );
+    brick_shader
+}
+
 pub fn no_ambient() -> AmbientLight {
     AmbientLight::new(Color::WHITE, 0.0)
 }

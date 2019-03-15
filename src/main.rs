@@ -6,7 +6,7 @@ use euler::*;
 use std::f64::consts::PI;
 
 fn light1() -> Box<PointLight> {
-    Box::new(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
+    Box::new(PointLight::new(dvec3!(200.0, 200.0, -200.0), Color::new(1.0, 1.0, 1.0), 300000.0, (0.0, 0.0, 1.0*PI)))
 }
 
 fn light2() -> Box<PointLight> {
@@ -79,44 +79,31 @@ fn make_weird_cube(size: f64) -> Box<SubtractShape> {
         ),
     )
 }
+
+fn default_material(color: Color) -> Box<PhongShader> {
+    PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0)
+}
+
 fn main() {
-    let sphere_size: f64 = 80.0;
     let scene = build_scene(
-        vec!(light1(), light2()),
+        vec!(light1()),
         no_ambient(),
-        Some(SkyBox::from_path(
-            "assets/images/backgrounds/building.jpg",
-            rotation(Axis::Y, 60.0),
-        )),
+        None,
         scene_node(
             DMat4::identity(),
             vec!(
-                create_room(700.0, RoomColorScheme {
-                    ceiling: Color::RED,
-                    floor: Color::GREEN,
-                    front: Color::BLUE,
-                    back: Color::CYAN,
-                    left: Color::MAGENTA,
-                    right: Color::YELLOW,
+                create_room_from_material(700.0, RoomMaterialScheme {
+                    ceiling: default_material(Color::WHITE),
+                    floor: default_material(Color::WHITE), 
+                    front: brick_shader(), 
+                    back: default_material(Color::WHITE),
+                    left: default_material(Color::WHITE),
+                    right: brick_shader(),
                 }),
-                geometry_node(
-                    translation(-150.0, 0.0, 40.0)*rotation(Axis::Y, -45.0),
-                    diffuse_material(),
-                    make_half_sphere(sphere_size),
-                    vec!(),
-                ),
-                geometry_node(
-                    translation(100.0, 0.0, 40.0)*rotation(Axis::Y, 45.0),
-                    diffuse_material(),
-                    make_weird_cube(sphere_size),
-                    vec!(),
-                ),
             ),
         ),
     );
 
-    let mut render_config = RenderConfig::default();
-    render_config.anti_alias = true;
-    let image = render_with_config(scene, image(256, 256), camera([0.0, 0.0, 350.0], [0.0, -100.0, -350.0]), render_config);
+    let image = render(scene, image(500, 500), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
     write_to_png( image, "output/main");
 }

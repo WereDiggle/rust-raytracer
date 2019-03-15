@@ -66,3 +66,18 @@ pub fn reflection(axis: Axis) -> DMat4 {
             0.0, 0.0,   z, 0.0,
             0.0, 0.0, 0.0, 1.0,)
 }
+
+pub fn basis(forward: DVec3, up: DVec3) -> DMat4 {
+
+    // Set up the Basis directions
+    let side = forward.cross(up).normalize();
+    let up = side.cross(forward).normalize();
+
+    // The transformation matrix
+    dmat4!(
+        side.x, side.y, side.z, 0.0,
+        up.x, up.y, up.z, 0.0,
+        forward.x, forward.y, forward.z, 0,
+        0, 0, 0, 1,
+    )
+}
