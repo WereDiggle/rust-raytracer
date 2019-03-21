@@ -10,7 +10,7 @@ fn light1() -> Box<PointLight> {
 }
 
 fn light2() -> Box<PointLight> {
-    Box::new(PointLight::new(dvec3!(100.0, 300.0, -300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
+    Box::new(PointLight::new(dvec3!(200.0, 200.0, 200.0), Color::new(1.0, 1.0, 1.0), 300000.0, (0.0, 0.0, 1.0*PI)))
 }
 
 fn light3() -> Box<PointLight> {
@@ -26,7 +26,8 @@ fn default_material(color: Color) -> Box<PhongShader> {
 }
 
 #[test]
-fn normal_map_room() {
+fn normal_map_room_1() {
+    let brick_shader = brick_shader();
     let scene = build_scene(
         vec!(light1()),
         no_ambient(),
@@ -37,15 +38,41 @@ fn normal_map_room() {
                 create_room_from_material(700.0, RoomMaterialScheme {
                     ceiling: default_material(Color::WHITE),
                     floor: default_material(Color::WHITE), 
-                    front: brick_shader(), 
+                    front: brick_shader.clone(), 
                     back: default_material(Color::CYAN),
                     left: default_material(Color::WHITE),
-                    right: brick_shader(),
+                    right: brick_shader.clone(),
                 }),
             ),
         ),
     );
 
-    let image = render(scene, image(500, 500), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
-    write_to_png( image, "output/normal_map_room");
+    let image = render(scene, image(1920, 1080), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
+    write_to_png( image, "output/normal_map_room_1");
+}
+
+#[test]
+fn normal_map_room_2() {
+    let brick_shader = brick_shader();
+    let scene = build_scene(
+        vec!(light2()),
+        no_ambient(),
+        None,
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                create_room_from_material(700.0, RoomMaterialScheme {
+                    ceiling: default_material(Color::WHITE),
+                    floor: default_material(Color::WHITE), 
+                    front: brick_shader.clone(), 
+                    back: default_material(Color::CYAN),
+                    left: default_material(Color::WHITE),
+                    right: brick_shader.clone(),
+                }),
+            ),
+        ),
+    );
+
+    let image = render(scene, image(1920, 1080), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
+    write_to_png( image, "output/normal_map_room_2");
 }

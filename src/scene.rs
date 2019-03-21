@@ -10,6 +10,7 @@ use std::f64;
 use std::sync::Arc;
 
 // TODO: find a better place for SkyBox
+// TODO: We've implemented textures, use textures for skybox
 #[derive(Clone)]
 pub struct SkyBox {
     image: Arc<RgbImage>,

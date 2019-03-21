@@ -33,6 +33,12 @@ pub struct ImageTexture {
 }
 
 impl ImageTexture {
+    pub fn new(image: RgbImage) -> Box<ImageTexture> {
+        Box::new(ImageTexture {
+            image: Arc::new(image),
+        })
+    }
+
     pub fn from_path(path: &str) -> Box<ImageTexture> {
         Box::new(ImageTexture {
             image: Arc::new(image::open(path).unwrap().to_rgb()),
@@ -42,18 +48,7 @@ impl ImageTexture {
 
 impl TextureMappable for ImageTexture {
     fn get_color(&self, surface_coord: SurfaceCoord) -> Color {
-        let u = surface_coord.get_u();
-        let v = 1.0 - surface_coord.get_v();
-
-        let u = self.image.width() as f64 * u;
-        let v = self.image.height() as f64 * v;
-
-        assert!(self.image.width() > 0);
-        assert!(self.image.height() > 0);
-
-        // Make sure u and v are proper indices for image
-        let u = (u.floor() as u32).min(self.image.width()-1);
-        let v = (v.floor() as u32).min(self.image.height()-1);
+        let (u, v) = surface_coord.get_uv(self.image.width() as f64, self.image.height() as f64);
 
         Color::from_rgb(self.image.get_pixel(u, v))
     }

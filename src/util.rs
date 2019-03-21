@@ -14,7 +14,7 @@ pub fn brick_shader() -> Box<ChainShader> {
     let mut brick_shader = ChainShader::new();
     brick_shader.push_shader(
         NormalMapShader::new(
-            NormalMap::from_path("assets/images/normal_maps/test.png")
+            NormalMap::from_path("assets/images/normal_maps/brick_wall.jpg")
         )
     );
     /*
