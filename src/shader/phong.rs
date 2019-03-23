@@ -28,7 +28,7 @@ fn total_light_blocked(opacity: Color, enter: f64, exit: f64) -> Color {
 
 impl Shadable for PhongShader {
     fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
-        assert!(intersect.surface_normal.length() - 1.0 < 0.000001);
+        assert!(intersect.surface_normal.length() - 1.0 < 0.0001);
         let mut total_color = self.ambient * scene.ambient_light.color_intensity();
         for light in &scene.lights {
             let light_direction = -1.0 * light.get_direction_to(intersect.hit_point);

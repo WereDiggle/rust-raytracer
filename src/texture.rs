@@ -48,7 +48,7 @@ impl ImageTexture {
 
 impl TextureMappable for ImageTexture {
     fn get_color(&self, surface_coord: SurfaceCoord) -> Color {
-        let (u, v) = surface_coord.get_uv(self.image.width() as f64, self.image.height() as f64);
+        let (u, v) = surface_coord.get_uv_index(self.image.width(), self.image.height());
 
         Color::from_rgb(self.image.get_pixel(u, v))
     }

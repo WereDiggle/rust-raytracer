@@ -44,14 +44,51 @@ impl BumpMap {
             depth,
         })
     }
+
+    pub fn from_path(path: &str, depth: f64) -> Box<BumpMap> {
+        Box::new(BumpMap {
+            bump_map: Arc::new(image::open(path).unwrap().to_luma()),
+            depth,
+        })
+    }
+
+    fn bump_height(&self, u: u32, v: u32) -> f64 {
+        // TODO: bounds checking
+        (self.bump_map.get_pixel(u, v).data[0] as f64/ 255.0) * self.depth
+    }
 }
 
 impl NormalMappable for BumpMap {
-    fn get_normal(&self, _: SurfaceCoord) -> DVec3 {
-        // tODO: copy a bunch of code from old raytracer
-        // determine if lower-left or upper-right
+    fn get_normal(&self, surface_coord: SurfaceCoord) -> DVec3 {
+        // We're treating each pixel of the bump map as a vertex, so width & height is one less
+        let (u, v) = surface_coord.get_uv_index(self.bump_map.width()-1, self.bump_map.height()-1);
 
-        dvec3!(0, 0, 0)
+        // Get heights of vertices
+        let up_left = self.bump_height(u, v+1);
+        let up_right = self.bump_height(u+1, v+1);
+        let bot_left = self.bump_height(u, v);
+        let bot_right = self.bump_height(u+1, v);
+
+        // Get position inside of pixel
+        let (u, v) = surface_coord.get_uv_decimal(self.bump_map.width()-1, self.bump_map.height()-1);
+
+        // Get y of normal
+        let up = u*up_right + (1.0-u)*up_left;
+        let bot = u*bot_right + (1.0-u)*bot_left;
+        let h = up-bot;
+        let h_denom = (h*h+1.0).sqrt();
+        let y_vec = dvec3!(0.0, h/h_denom, 1.0/h_denom);
+
+        // Get X of normal
+        let left = v*up_left + (1.0-v)*bot_left;
+        let right = v*up_right + (1.0-v)*bot_right;
+        let h = right-left;
+        let h_denom = (h*h+1.0).sqrt();
+        let x_vec = dvec3!(h/h_denom, 0.0, 1.0/h_denom);
+
+        let normal = (y_vec + x_vec).normalize();
+        assert!(normal.length() - 1.0 < 0.00001);
+        normal
     }
 }
 
@@ -67,6 +104,7 @@ impl NormalMap {
             normal_map: Arc::new(image),
         })
     }
+
     pub fn from_path(path: &str) -> Box<NormalMap> {
         Box::new(NormalMap {
             normal_map: Arc::new(image::open(path).unwrap().to_rgb()),
@@ -76,7 +114,7 @@ impl NormalMap {
 
 impl NormalMappable for NormalMap {
     fn get_normal(&self, surface_coord: SurfaceCoord) -> DVec3 {
-        let (u, v) = surface_coord.get_uv(self.normal_map.width() as f64, self.normal_map.height() as f64);
+        let (u, v) = surface_coord.get_uv_index(self.normal_map.width(), self.normal_map.height());
 
         let normal = self.normal_map.get_pixel(u, v);
         let normal = dvec3!(128 - normal.data[0] as i32, 128 - normal.data[1] as i32, normal.data[2]).normalize();

@@ -24,35 +24,36 @@ impl<'a> AssetManager<'a> {
         }
     }
 
-    pub fn image_texture_from_path(&self, path: &str) -> Box<TextureMappable> {
+    pub fn image_texture_from_path(&mut self, path: &'a str) -> Box<TextureMappable + Send + Sync> {
         // Check if cache already has asset
         if let Some(texture) = self.texture_cache.get(path) {
-            texture.clone()
+            return texture.clone()
         }
-        else {
-            // TODO: better error handling
-            ImageTexture::new(image::open(path).unwrap().to_rgb())
-        }
+
+        let texture = ImageTexture::new(image::open(path).unwrap().to_rgb());
+        self.texture_cache.insert(path, texture.clone());
+        texture
 
     }
 
-    pub fn bump_map_from_path(&self, path: &str, depth: f64) -> Box<NormalMappable> {
+    pub fn bump_map_from_path(&mut self, path: &'a str, depth: f64) -> Box<NormalMappable + Send + Sync> {
         if let Some(bump_map) = self.normal_map_cache.get(path) {
-            bump_map.clone()
+            return bump_map.clone();
         }
-        else {
-            BumpMap::new(image::open(path).unwrap().to_luma(), depth)
-        }
+        
+        let bump_map = BumpMap::new(image::open(path).unwrap().to_luma(), depth);
+        self.normal_map_cache.insert(path, bump_map.clone());
+        bump_map
     }
 
-    pub fn normal_map_from_path(&self, path: &str) -> Box<NormalMappable> {
+    pub fn normal_map_from_path(&mut self, path: &'a str) -> Box<NormalMappable> {
         // Check if cache already has asset
         if let Some(normal_map) = self.normal_map_cache.get(path) {
-            normal_map.clone()
+            return normal_map.clone();
         }
-        else {
-            // TODO: better error handling
-            NormalMap::new(image::open(path).unwrap().to_rgb())
-        }
+
+        let normal_map = NormalMap::new(image::open(path).unwrap().to_rgb());
+        self.normal_map_cache.insert(path, normal_map.clone());
+        normal_map
     }
 }
