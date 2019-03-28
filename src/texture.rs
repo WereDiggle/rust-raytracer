@@ -48,8 +48,21 @@ impl ImageTexture {
 
 impl TextureMappable for ImageTexture {
     fn get_color(&self, surface_coord: SurfaceCoord) -> Color {
-        let (u, v) = surface_coord.get_uv_index(self.image.width(), self.image.height());
+        let (u, v) = surface_coord.get_uv_index(self.image.width()-1, self.image.height()-1);
 
-        Color::from_rgb(self.image.get_pixel(u, v))
+        let up_left = Color::from_rgb(self.image.get_pixel(u, v));
+        let up_right = Color::from_rgb(self.image.get_pixel(u+1, v));
+        let bot_left = Color::from_rgb(self.image.get_pixel(u, v+1));
+        let bot_right = Color::from_rgb(self.image.get_pixel(u+1, v+1));
+
+        let (u, v) = surface_coord.get_uv_decimal(self.image.width()-1, self.image.height()-1);
+
+        // TODO: try non-linear weights, want corners to have more significance
+
+        // weighted average based on inter-pixel position
+        up_left * (1.0-u)*v +
+        up_right * u*v +
+        bot_left * (1.0-u)*(1.0-v) +
+        bot_right * u*(1.0-v)
     }
 }

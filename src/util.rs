@@ -125,6 +125,15 @@ pub fn create_floor(size: f64, color: Color) -> Box<SceneNode> {
     Box::new(floor)
 }
 
+pub fn create_floor_from_material(size: f64, material: Box<Shadable + Send + Sync>) -> Box<SceneNode> {
+    geometry_node(
+        rotation(Axis::X, -90.0),
+        material,
+        Box::new(RectangularPlane::new(size, size)),
+        vec!(),
+    )
+}
+
 pub fn create_mirror(size: f64, color: Color, transform: DMat4) -> SceneNode {
     let mut wall = SceneNode::new();
     wall.set_primitive(Box::new(RectangularPlane::new(size, size)));

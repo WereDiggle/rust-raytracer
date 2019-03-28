@@ -5,6 +5,8 @@ use std::sync::Arc;
 
 use std::collections::HashMap;
 
+// TODO: enum Asset
+
 // TODO: Should all the path related functions be in here?
 // And all the actual constructors use their respect asset, ie RgbImage
 

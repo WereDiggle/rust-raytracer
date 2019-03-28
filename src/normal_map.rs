@@ -64,10 +64,12 @@ impl NormalMappable for BumpMap {
         let (u, v) = surface_coord.get_uv_index(self.bump_map.width()-1, self.bump_map.height()-1);
 
         // Get heights of vertices
-        let up_left = self.bump_height(u, v+1);
-        let up_right = self.bump_height(u+1, v+1);
-        let bot_left = self.bump_height(u, v);
-        let bot_right = self.bump_height(u+1, v);
+        // TODO: store images upside-down internally so we don't have to remember that sometimes
+        // The v value should be reversed
+        let up_left = self.bump_height(u, v);
+        let up_right = self.bump_height(u+1, v);
+        let bot_left = self.bump_height(u, v+1);
+        let bot_right = self.bump_height(u+1, v+1);
 
         // Get position inside of pixel
         let (u, v) = surface_coord.get_uv_decimal(self.bump_map.width()-1, self.bump_map.height()-1);

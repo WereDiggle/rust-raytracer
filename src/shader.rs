@@ -87,6 +87,10 @@ impl CompositeShader {
     pub fn add_shader(&mut self, weight: f64, shader: Box<Shadable + Send + Sync>) {
         self.shaders.push((weight, shader));
     }
+
+    pub fn from_shaders(shaders: Vec<(f64, Box<Shadable + Send + Sync>)>) -> Box<CompositeShader> {
+        Box::new(CompositeShader{shaders})
+    }
 }
 
 impl Shadable for CompositeShader {

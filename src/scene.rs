@@ -1,8 +1,9 @@
 use euler::{dvec3, DVec3, DMat4};
 use color::Color;
 use light::{Lightable, AmbientLight};
-use geometry::{matrix, NodeIntersect, Intersectable, Transformable, TransformComponent, Ray};
+use geometry::{matrix, NodeIntersect, Intersectable, Transformable, TransformComponent, Ray, SurfaceCoord};
 use shader::{Shadable, PhongShader};
+use texture::{TextureMappable, ImageTexture};
 use snowflake::ProcessUniqueId;
 use image::{RgbImage, ImageBuffer};
 use std::f64::consts::PI;
@@ -13,7 +14,7 @@ use std::sync::Arc;
 // TODO: We've implemented textures, use textures for skybox
 #[derive(Clone)]
 pub struct SkyBox {
-    image: Arc<RgbImage>,
+    image: Box<TextureMappable + Send + Sync>,
 
     // Only rotation matters here
     transform: TransformComponent,
@@ -22,7 +23,7 @@ pub struct SkyBox {
 impl SkyBox {
     pub fn from_path(path: &str, matrix: DMat4) -> SkyBox {
         SkyBox {
-            image: Arc::new(image::open(path).unwrap().to_rgb()),
+            image: ImageTexture::from_path(path),
             transform: TransformComponent::new(matrix),
         }
     }
@@ -37,18 +38,8 @@ impl SkyBox {
         let v = elevation/PI + 0.5;
         assert!(u >= 0.0 && u <= 1.0);
         assert!(v >= 0.0 && v <= 1.0);
-        let v = 1.0 - v;
-
-        let u = self.image.width() as f64 * u;
-        let v = self.image.height() as f64 * v;
-
-        assert!(self.image.width() > 0);
-        assert!(self.image.height() > 0);
-
-        let u = (u.floor() as u32).min(self.image.width()-1);
-        let v = (v.floor() as u32).min(self.image.height()-1);
-
-        Color::from_rgb(self.image.get_pixel(u, v))
+        
+        self.image.get_color(SurfaceCoord::new(u, v))
     }
 }
 

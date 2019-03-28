@@ -6,11 +6,11 @@ use euler::*;
 use std::f64::consts::PI;
 
 fn light1() -> Box<PointLight> {
-    Box::new(PointLight::new(dvec3!(200.0, 200.0, -200.0), Color::new(1.0, 1.0, 1.0), 300000.0, (0.0, 0.0, 1.0*PI)))
+    Box::new(PointLight::new(dvec3!(100.0, 200.0, 200.0), Color::new(1.0, 1.0, 1.0), 300000.0, (0.0, 0.0, 1.0*PI)))
 }
 
 fn light2() -> Box<PointLight> {
-    Box::new(PointLight::new(dvec3!(200.0, 200.0, 0.0), Color::new(1.0, 1.0, 1.0), 300000.0, (0.0, 0.0, 1.0*PI)))
+    Box::new(PointLight::new(dvec3!(100.0, 200.0, -200.0), Color::new(1.0, 1.0, 1.0), 300000.0, (0.0, 0.0, 1.0*PI)))
 }
 
 pub fn test_bump_shader(color: Color, normal_map: Box<NormalMappable + Send + Sync>) -> Box<ChainShader> {
@@ -37,11 +37,11 @@ fn bump_map_basic_1() {
             DMat4::identity(),
             vec!(
                 create_room_from_material(700.0, RoomMaterialScheme {
-                    ceiling: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 3.0)),
-                    floor: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
-                    front: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
-                    back: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
-                    left: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
+                    ceiling: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    floor: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    front: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    back: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    left: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
                     right: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
                 }),
             ),
@@ -63,11 +63,11 @@ fn bump_map_basic_2() {
             DMat4::identity(),
             vec!(
                 create_room_from_material(700.0, RoomMaterialScheme {
-                    ceiling: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 3.0)),
-                    floor: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
-                    front: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
-                    back: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
-                    left: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
+                    ceiling: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    floor: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    front: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    back: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
+                    left: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/dot.png", 1.0)),
                     right: test_bump_shader(Color::WHITE, am.bump_map_from_path("assets/images/bump_maps/bumps.png", 1.0)),
                 }),
             ),

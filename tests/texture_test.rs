@@ -92,3 +92,44 @@ fn texture_cube() {
     let image = render(scene, image(1920, 1080), camera([-310.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/texture_cube");
 }
+
+#[test]
+fn skybox_test() {
+    let scene = build_scene(
+        vec!(),
+        no_ambient(),
+        Some(SkyBox::from_path("assets/images/living_room.jpg", DMat4::identity())),
+        scene_node(
+            DMat4::identity(),
+            vec!(),
+        ),
+    );
+
+    let image = render(scene, image(512, 512), camera([-310.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
+    write_to_png( image, "output/skybox_test");
+}
+
+#[test]
+fn correlated_texture() {
+    let scene = build_scene(
+        vec!(light1(), light2(), light3()),
+        no_ambient(),
+        None,
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                create_room_from_material(700.0, RoomMaterialScheme {
+                    ceiling: texture_phong_material("assets/images/tiny.png", 4.0, 6.0, 0.0, 2.0),
+                    floor: texture_phong_material("assets/images/tiny.png", 1.0, 0.0, 0.0, 1.0),
+                    front: texture_phong_material("assets/images/tiny.png", 1.0, 0.0, 0.0, 1.0),
+                    back: default_material(Color::CYAN),
+                    left: texture_phong_material("assets/images/tiny.png", 1.0, 0.0, 0.0, 1.0),
+                    right: texture_phong_material("assets/images/tiny.png", 1.0, 0.0, 0.0, 1.0),
+                }),
+            ),
+        ),
+    );
+
+    let image = render(scene, image(512, 512), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
+    write_to_png( image, "output/correlated_texture");
+}
