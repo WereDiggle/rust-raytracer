@@ -3,7 +3,7 @@ use super::*;
 #[derive(Clone)]
 pub struct Cube {
     pub length: f64,
-    base_plane: RectangularPlane,
+    base_plane: Box<Rectangle>,
     matrices: [DMat4; 6],
     inverse_matrices: [DMat4; 6],
 }
@@ -11,9 +11,9 @@ pub struct Cube {
 impl Cube {
     const texture_offsets: [(f64, f64); 6] = [(2.0, 1.0), (0.0, 1.0), (1.0, 1.0), (3.0, 1.0), (1.0, 2.0), (1.0, 0.0)];
 
-    pub fn new(length: f64) -> Cube {
+    pub fn new(length: f64) -> Box<Cube> {
         let mut matrices: [DMat4; 6] = [DMat4::identity(); 6];  
-        let base_plane = RectangularPlane::new(length, length);
+        let base_plane = Rectangle::new(length, length);
 
         matrices[0] = rotation(Axis::Y, 90.0) * translation(0.0, 0.0, length/2.0);      // right
         matrices[1] = rotation(Axis::Y, -90.0) * translation(0.0, 0.0, length/2.0);     // left
@@ -27,7 +27,7 @@ impl Cube {
             inverse_matrices[i] = matrices[i].inverse();
         }
 
-        Cube{length, base_plane, matrices, inverse_matrices}
+        Box::new(Cube{length, base_plane, matrices, inverse_matrices})
     }
 
     fn transform_surface_coord(surface_coord: SurfaceCoord, face: usize) -> SurfaceCoord {

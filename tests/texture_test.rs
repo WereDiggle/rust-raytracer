@@ -45,13 +45,13 @@ fn texture_room() {
                 geometry_node(
                     translation(-150.0, -270.0, 0.0),
                     texture_phong_material("assets/images/textures/orange_leather.jpg", 1.0, 0.0, 0.0, 1.0),
-                    Box::new(Sphere::new(80.0)),
+                    Sphere::from_radius(80.0),
                     vec!(),
                 ),
                 geometry_node(
                     translation(150.0, -270.0, 80.0),
                     texture_phong_material("assets/images/textures/cube_rgb_gradient.png", 0.5, 0.5, 0.0, 4.0),
-                    Box::new(Cube::new(160.0)),
+                    Cube::new(160.0),
                     vec!(),
                 ),
             ),
@@ -82,7 +82,7 @@ fn texture_cube() {
                 geometry_node(
                     translation(0.0, 0.0, 0.0),
                     texture_phong_material("assets/images/textures/cube_rgb_numbers.png", 0.5, 0.5, 0.0, 4.0),
-                    Box::new(Cube::new(160.0)),
+                    Cube::new(160.0),
                     vec!(),
                 ),
             ),

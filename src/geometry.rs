@@ -1,4 +1,4 @@
-use euler::{dmat4, DMat4, DVec2, DVec3, dvec4, dvec2};
+use euler::{dmat4, DMat4, DVec2, DVec3, dvec3, dvec4, dvec2};
 use shader::Shadable;
 use color::*;
 use snowflake::ProcessUniqueId;
@@ -20,7 +20,13 @@ pub trait Intersectable: IntersectableClone {
 
     //fn surface_coords(&self, hit_point: DVec4) -> DVec2;
 
-    fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect>;
+    fn get_all_intersects(&self, ray: Ray) -> Vec<Intersect> {
+        let mut ret_intersects: Vec<Intersect> = Vec::new(); 
+        if let Some(intersect) = self.get_closest_intersect(ray) {
+            ret_intersects.push(intersect);
+        }
+        ret_intersects
+    }
 }
 
 pub trait IntersectableClone {

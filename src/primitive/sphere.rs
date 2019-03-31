@@ -7,10 +7,6 @@ pub struct Sphere {
 
 impl Sphere {
     // TODO: remove
-    pub fn new(radius: f64) -> Sphere {
-        Sphere {radius}
-    }
-
     pub fn from_radius(radius: f64) -> Box<Sphere> {
         Box::new(Sphere{radius})
     }

@@ -70,7 +70,10 @@ pub fn reflection(axis: Axis) -> DMat4 {
 pub fn basis(forward: DVec3, up: DVec3) -> DMat4 {
 
     // Set up the Basis directions
+    // TODO: remove this hacky hack
+    let up = if up == forward {dvec3!(0.0, 0.0, -1.0)} else {up};
     let side = forward.cross(up).normalize();
+    assert!(side.length() - 1.0 < 0.0001, "side: {}", side);
     let up = side.cross(forward).normalize();
 
     // The transformation matrix

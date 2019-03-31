@@ -8,7 +8,7 @@ use euler::*;
 fn setup_scene() -> Scene {
     let mut test_scene = Scene::new();
     let mut root = SceneNode::new();
-    root.set_primitive(Box::new(Sphere::new(100.0)));
+    root.set_primitive(Sphere::from_radius(100.0));
     test_scene.root = Box::new(root);
     test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, 1000.0, 200.0), Color::new(0.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0))));
     test_scene
@@ -62,7 +62,7 @@ fn plane_test_1() {
     let test_material = PhongShader::new(Color::WHITE*0.1, Color::WHITE*0.9, Color::WHITE*0.1, 4.0);
     let mut root = SceneNode::new();
     root.set_material(test_material);
-    root.set_primitive(Box::new(RectangularPlane::new(100.0, 100.0)));
+    root.set_primitive(Rectangle::new(100.0, 100.0));
     test_scene.root = Box::new(root);
     test_scene.add_light(Box::new(PointLight::new(dvec3!(0.0, 0.0, 200.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0))));
     let camera_config = CameraConfig{ origin: dvec3!(50.0, 50.0, 200.0),
@@ -79,7 +79,7 @@ fn setup_diffuse_cube(transform: DMat4) -> Scene {
     let mut root = SceneNode::new();
     root.set_transform(transform);
     root.set_material(material);
-    root.set_primitive(Box::new(Cube::new(100.0)));
+    root.set_primitive(Cube::new(100.0));
 
     scene.root = Box::new(root);
     scene.add_light(Box::new(PointLight::new(dvec3!(200.0, 300.0, 400.0), Color::new(1.0, 1.0, 1.0), 2.0, (1.0, 0.0, 0.0))));
@@ -126,7 +126,7 @@ fn setup_multiple_cubes_same_transform(num_cubes: u32, transform: DMat4) -> Scen
     let material = PhongShader::new(Color::WHITE*0.9, Color::WHITE*0.0, Color::WHITE*0.1, 4.0);
     base_node.set_transform(transform);
     base_node.set_material(material);
-    base_node.set_primitive(Box::new(Cube::new(50.0)));
+    base_node.set_primitive(Cube::new(50.0));
 
     let mut prev_node;
     let mut scene_node = base_node.clone();
@@ -156,7 +156,7 @@ fn shadow_test_1() {
     root.set_transform(translation(-100.0, -100.0, -100.0));
 
     let mut small_sphere = SceneNode::new();
-    small_sphere.set_primitive(Box::new(Sphere::new(50.0)));
+    small_sphere.set_primitive(Sphere::from_radius(50.0));
     small_sphere.set_transform(translation(100.0, 100.0, 100.0));
     root.add_child(Box::new(small_sphere));
 

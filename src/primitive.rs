@@ -8,7 +8,9 @@ pub mod plane;
 
 pub use self::cube::Cube;
 pub use self::sphere::Sphere;
-pub use self::plane::RectangularPlane;
+pub use self::plane::Rectangle;
+pub use self::plane::Triangle;
+pub use self::plane::Polygon;
 
 #[derive(Clone)]
 pub struct OneWay {

@@ -123,6 +123,10 @@ impl ChainShader {
         })
     }
 
+    pub fn from_shaders(shaders: Vec<Box<Shadable + Send + Sync>>) -> Box<ChainShader> {
+        Box::new(ChainShader{shaders})
+    }
+
     pub fn push_shader(&mut self, shader: Box<Shadable + Send + Sync>) {
         self.shaders.push(shader);
     }
@@ -171,7 +175,9 @@ impl Shadable for NormalMapShader {
 
     fn modify_intersect(&self, scene: &Scene, intersect: Intersect) -> Intersect {
         let mut intersect = intersect.clone();
+        assert!(intersect.surface_normal.length() - 1.0 < 0.0001, "normal pre: {}", intersect.surface_normal);
         intersect.surface_normal = self.normal_map.calculate_normal(intersect.surface_coord, intersect.surface_normal, scene.up);
+        assert!(intersect.surface_normal.length() - 1.0 < 0.0001, "normal post: {}", intersect.surface_normal);
         intersect
     }
 }

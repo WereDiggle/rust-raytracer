@@ -10,8 +10,8 @@ use std::f64::consts::PI;
 fn subtract_sphere() {
     let mut scene = Scene::new();
     let mut root = SceneNode::new();
-    let sphere1 = Box::new(Sphere::new(50.0));
-    let sphere2 = Box::new(Sphere::new(40.0));
+    let sphere1 = Sphere::from_radius(50.0);
+    let sphere2 = Sphere::from_radius(40.0);
 
     let sphere1 = Box::new(BaseShape::new(DMat4::identity(), sphere1));
     let sphere2 = Box::new(BaseShape::new(translation(0.0, 50.0, 20.0), sphere2));
