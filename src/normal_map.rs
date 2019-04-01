@@ -39,15 +39,17 @@ pub struct BumpMap {
 
 impl BumpMap {
     pub fn new(image: GrayImage, depth: f64) -> Box<BumpMap> {
+        use image::imageops::flip_vertical;
         Box::new(BumpMap {
-            bump_map: Arc::new(image),
+            bump_map: Arc::new(flip_vertical(&image)),
             depth,
         })
     }
 
     pub fn from_path(path: &str, depth: f64) -> Box<BumpMap> {
+        use image::imageops::flip_vertical;
         Box::new(BumpMap {
-            bump_map: Arc::new(image::open(path).unwrap().to_luma()),
+            bump_map: Arc::new(flip_vertical(&image::open(path).unwrap().to_luma())),
             depth,
         })
     }
@@ -102,14 +104,16 @@ pub struct NormalMap {
 
 impl NormalMap {
     pub fn new(image: RgbImage) -> Box<NormalMap> {
+        use image::imageops::flip_vertical;
         Box::new(NormalMap {
-            normal_map: Arc::new(image),
+            normal_map: Arc::new(flip_vertical(&image)),
         })
     }
 
     pub fn from_path(path: &str) -> Box<NormalMap> {
+        use image::imageops::flip_vertical;
         Box::new(NormalMap {
-            normal_map: Arc::new(image::open(path).unwrap().to_rgb()),
+            normal_map: Arc::new(flip_vertical(&image::open(path).unwrap().to_rgb())),
         })
     }
 }

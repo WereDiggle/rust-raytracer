@@ -19,7 +19,7 @@ impl SurfaceCoord {
 
     pub fn get_v_index(&self, height: u32) -> u32 {
         assert!(height > 0);
-        ((1.0 - self.coord.y) * height as f64).floor() as u32
+        (self.coord.y * height as f64).floor() as u32
     }
 
     pub fn get_uv_index(&self, width: u32, height: u32) -> (u32, u32) {

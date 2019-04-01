@@ -34,14 +34,16 @@ pub struct ImageTexture {
 
 impl ImageTexture {
     pub fn new(image: RgbImage) -> Box<ImageTexture> {
+        use image::imageops::flip_vertical;
         Box::new(ImageTexture {
-            image: Arc::new(image),
+            image: Arc::new(flip_vertical(&image)),
         })
     }
 
     pub fn from_path(path: &str) -> Box<ImageTexture> {
+        use image::imageops::flip_vertical;
         Box::new(ImageTexture {
-            image: Arc::new(image::open(path).unwrap().to_rgb()),
+            image: Arc::new(flip_vertical(&image::open(path).unwrap().to_rgb())),
         })
     }
 }
