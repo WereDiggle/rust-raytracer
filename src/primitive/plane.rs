@@ -44,14 +44,20 @@ pub struct Triangle {
     pub vertices: [DVec3; 3],
     edges: [DVec3; 3],
     surface_coord_height: f64,
+    surface_coord_width: f64,
 }
 
 impl Triangle {
     pub fn from_vertices(v1: DVec3, v2: DVec3, v3: DVec3) -> Box<Triangle> {
         let edges = [v2-v1, v3-v2, v1-v3];
-        let surface_coord_height = -1.0*edges[2] - (edges[0].dot(-1.0*edges[2])/(-1.0*edges[2]).dot(-1.0*edges[2]))*edges[2]*-1.0;
+        let a_side = -1.0*edges[2];
+        let b_side = edges[0];
+        let surface_coord_height = a_side - (a_side.dot(b_side)/(b_side).dot(b_side))*b_side;
+        let surface_coord_width = a_side - surface_coord_height;
         let surface_coord_height = surface_coord_height.length();
-        Box::new(Triangle{vertices: [v1, v2, v3], edges, surface_coord_height})
+        let surface_coord_width = surface_coord_width.length();
+
+        Box::new(Triangle{vertices: [v1, v2, v3], edges, surface_coord_height, surface_coord_width})
     }
 
     // basically using cosine law with lengths of triangle to find coords
@@ -61,7 +67,7 @@ impl Triangle {
 
         let x = side_a * cos_theta;
         let y = (side_a*side_a - x*x).sqrt();
-        SurfaceCoord::new(x/side_c, y/self.surface_coord_height)
+        SurfaceCoord::new(x/self.surface_coord_width, y/self.surface_coord_height)
     }
 }
 

@@ -129,7 +129,7 @@ fn triangle_basic() {
                 geometry_node(
                     rotation(Axis::Y, 0.0),
                     texture_phong_material("assets/images/textures/granite.jpg", 1.0, 0.0, 0.0, 1.0),
-                    Triangle::from_vertices(dvec3!(-10.0, -10.0, 0.0), dvec3!(10.0, -10.0, 0.0), dvec3!(0.0, 10.0, 0.0)),
+                    Triangle::from_vertices(dvec3!(-10.0, -10.0, 0.0), dvec3!(0.0, -10.0, 0.0), dvec3!(10.0, 10.0, 0.0)),
                     vec!()
                 ),
             ),
