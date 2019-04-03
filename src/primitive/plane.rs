@@ -55,7 +55,7 @@ impl Triangle {
         let surface_coord_height = a_side - (a_side.dot(b_side)/(b_side).dot(b_side))*b_side;
         let surface_coord_width = a_side - surface_coord_height;
         let surface_coord_height = surface_coord_height.length();
-        let surface_coord_width = surface_coord_width.length();
+        let surface_coord_width = surface_coord_width.length().max(b_side.length());
 
         Box::new(Triangle{vertices: [v1, v2, v3], edges, surface_coord_height, surface_coord_width})
     }
@@ -82,10 +82,9 @@ impl Intersectable for Triangle {
         // Only comparing against one of the vertices
         // So if the ray origin is waaay close, might not intersect when it should
         let origin_dot = normal.dot(ray.origin - self.vertices[0]);
-        if origin_dot > 0.0 {
-            let direction_dot = normal.dot(ray.direction);
-            let hit_distance = origin_dot / direction_dot.abs();
-            if hit_distance < Ray::MIN_DISTANCE {return None};
+        let direction_dot = normal.dot(ray.direction);
+        let hit_distance = -origin_dot / direction_dot;
+        if hit_distance > Ray::MIN_DISTANCE {
             let hit_point = ray.point_at_distance(hit_distance);
 
             let edge_c = self.vertices[0] - self.vertices[2];

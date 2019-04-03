@@ -7,6 +7,7 @@ pub mod sphere;
 pub mod plane;
 
 pub use self::cube::Cube;
+pub use self::cube::Tetrahedron;
 pub use self::sphere::Sphere;
 pub use self::plane::Rectangle;
 pub use self::plane::Triangle;
