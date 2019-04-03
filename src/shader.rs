@@ -169,14 +169,14 @@ impl NormalMapShader {
 // We basically want to edit the intersect
 impl Shadable for NormalMapShader {
     fn get_color(&self, scene: &Scene, intersect: Intersect) -> Color {
-        let normal = self.normal_map.calculate_normal(intersect.surface_coord, intersect.surface_normal, scene.up);
+        let normal = self.normal_map.calculate_normal(intersect.surface_coord, intersect.surface_normal, intersect.surface_tangent);
         Color::new(normal.x, normal.y, normal.z)
     }
 
     fn modify_intersect(&self, scene: &Scene, intersect: Intersect) -> Intersect {
         let mut intersect = intersect.clone();
         assert!(intersect.surface_normal.length() - 1.0 < 0.0001, "normal pre: {}", intersect.surface_normal);
-        intersect.surface_normal = self.normal_map.calculate_normal(intersect.surface_coord, intersect.surface_normal, scene.up);
+        intersect.surface_normal = self.normal_map.calculate_normal(intersect.surface_coord, intersect.surface_normal, intersect.surface_tangent);
         assert!(intersect.surface_normal.length() - 1.0 < 0.0001, "normal post: {}", intersect.surface_normal);
         intersect
     }
