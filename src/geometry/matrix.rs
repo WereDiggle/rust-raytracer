@@ -10,6 +10,10 @@ pub fn transform_point(matrix: DMat4, point: DVec3) -> DVec3 {
     (matrix * dvec4!(point, 1.0)).xyz()
 }
 
+pub fn transform_vector(matrix: DMat4, vector: DVec3) -> DVec3 {
+    (matrix * dvec4!(vector, 0.0)).xyz()
+}
+
 pub fn transform_normal(matrix: DMat4, normal: DVec3) -> DVec3 {
     (matrix.inverse().transpose() * dvec4!(normal, 0.0)).xyz().normalize()
 }

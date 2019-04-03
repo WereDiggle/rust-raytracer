@@ -6,12 +6,19 @@ pub struct Intersect {
     pub distance: f64, 
     pub hit_point: DVec3,
     pub surface_normal: DVec3,
+    pub surface_tangent: DVec3,
     pub surface_coord: SurfaceCoord,
 }
 
 impl Intersect {
-    pub fn new(ray: Ray, distance: f64, hit_point: DVec3, surface_normal: DVec3, surface_coord: SurfaceCoord) -> Intersect {
-        Intersect{ ray, distance, hit_point, surface_normal, surface_coord}
+    // TODO: this constructor is getting a little large
+    pub fn new(ray: Ray, 
+               distance: f64, 
+               hit_point: DVec3, 
+               surface_normal: DVec3, 
+               surface_tangent: DVec3, 
+               surface_coord: SurfaceCoord) -> Intersect {
+        Intersect{ ray, distance, hit_point, surface_normal, surface_tangent, surface_coord}
     }
 
     pub fn transform(&self, matrix: DMat4) -> Intersect {
@@ -19,11 +26,13 @@ impl Intersect {
         let hit_point = matrix::transform_point(matrix, self.hit_point);
         let distance = (hit_point - ray.origin).length();
         let surface_normal = matrix::transform_normal(matrix, self.surface_normal);
+        let surface_tangent = matrix::transform_vector(matrix, self.surface_tangent);
         Intersect {
             ray,
             distance,
             hit_point,
             surface_normal,
+            surface_tangent,
             surface_coord: self.surface_coord,
         }
     }
@@ -34,6 +43,7 @@ impl Intersect {
             distance: self.distance,
             hit_point: self.hit_point,
             surface_normal: self.surface_normal,
+            surface_tangent: self.surface_tangent,
             surface_coord: self.surface_coord,
         }
     }
@@ -44,6 +54,7 @@ impl Intersect {
             distance: self.distance,
             hit_point: self.hit_point,
             surface_normal: self.surface_normal * -1.0,
+            surface_tangent: self.surface_tangent,
             surface_coord: self.surface_coord,
         }
     }

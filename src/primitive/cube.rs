@@ -123,9 +123,8 @@ impl Tetrahedron {
 
     fn transform_surface_coord(surface_coord: SurfaceCoord, face: usize) -> SurfaceCoord {
         let (mut u, mut v) = surface_coord.get_coord();
-        // TODO: ignore for now, but will need to figure out mapping
-        //u = (u + Tetrahedron::texture_offsets[face].0)/4.0;
-        //v = (v + Tetrahedron::texture_offsets[face].1)/3.0;
+        u = (u + (face as f64)/2.0)/2.5;
+        v = 1.0 - v;
         SurfaceCoord::new(u, v)
     }
 

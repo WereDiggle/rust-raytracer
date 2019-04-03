@@ -40,24 +40,21 @@ impl Sphere {
         let t0 = adj - thc;
         let t1 = adj + thc;
 
-        if t0 < Ray::MIN_DISTANCE && t1 < Ray::MIN_DISTANCE {
-            return (None, None);
+        (Sphere::intersect_from_distance(t0, ray), Sphere::intersect_from_distance(t1, ray))
+    }
+
+    fn intersect_from_distance(dist: f64, ray: Ray) -> Option<Intersect> {
+        if dist < Ray::MIN_DISTANCE {
+            None
         }
-        let mut intersects: (Option<Intersect>, Option<Intersect>) = (None, None);
-
-        if t0 >= Ray::MIN_DISTANCE {
-            let hit_point = ray.point_at_distance(t0);
+        else {
+            let hit_point = ray.point_at_distance(dist);
             let surface_coord = Sphere::get_surface_coord(hit_point);
-            intersects.0 = Some(Intersect::new(ray, t0, hit_point, hit_point.normalize(), surface_coord));
-        } 
-
-        if t1 >= Ray::MIN_DISTANCE {
-            let hit_point = ray.point_at_distance(t1);
-            let surface_coord = Sphere::get_surface_coord(hit_point);
-            intersects.1 = Some(Intersect::new(ray, t1, hit_point, hit_point.normalize(), surface_coord));
+            let surface_normal = hit_point.normalize();
+            // TODO: edge case where normal points straight up
+            let surface_tangent = surface_normal.cross(dvec3!(0.0, 1.0, 0.0).cross(surface_normal));
+            Some(Intersect::new(ray, dist, hit_point, surface_normal, surface_tangent, surface_coord))
         }
-
-        intersects
     }
 }
 

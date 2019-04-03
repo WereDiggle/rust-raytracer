@@ -63,7 +63,7 @@ fn make_d6(size: f64, transform: DMat4) -> Box<SceneNode> {
 fn make_d4(size: f64, transform: DMat4) -> Box<SceneNode> {
     geometry_node(
         transform,
-        texture_phong_material("assets/images/textures/granite.jpg", 1.0, 0.0, 0.0, 1.0),
+        texture_phong_material("assets/images/textures/d4_num.png", 1.0, 0.0, 0.0, 1.0),
         Tetrahedron::new(size),
         vec!()
     )
@@ -100,7 +100,9 @@ fn dice_scene_lo_res() {
 #[test]
 fn dice_scene_hi_res() {
     let scene = make_dice_scene();
-    let image = render(scene, image(1920, 1080), camera([-30.0, 20.0, 70.0], [50.0, -50.0, -80.0]));
+    let mut config = RenderConfig::default();
+    config.anti_alias = false;
+    let image = render_with_config(scene, image(1920, 1080), camera([-30.0, 20.0, 70.0], [50.0, -50.0, -80.0]), config);
     write_to_png( image, "output/dice_scene_hi_res");
 }
 

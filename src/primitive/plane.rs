@@ -13,6 +13,7 @@ impl Rectangle {
 }
 
 impl Intersectable for Rectangle {
+    // TODO: const normal and tangent
     fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
         // Get point on the plane
         let surface_normal = dvec3!(0.0, 0.0, 1.0);
@@ -31,7 +32,7 @@ impl Intersectable for Rectangle {
             let u = (hit_point.x/horizontal_bound + 1.0)/2.0;
             let v = (hit_point.y/vertical_bound + 1.0)/2.0;
             let surface_coord = SurfaceCoord::new(u, v);
-            Some(Intersect::new(ray, hit_distance, hit_point, surface_normal, surface_coord))
+            Some(Intersect::new(ray, hit_distance, hit_point, surface_normal, dvec3!(0.0, 1.0, 0.0), surface_coord))
         }
         else {
             None
@@ -45,19 +46,26 @@ pub struct Triangle {
     edges: [DVec3; 3],
     surface_coord_height: f64,
     surface_coord_width: f64,
+    surface_tangent: DVec3,
+    surface_normal: DVec3,
 }
 
 impl Triangle {
     pub fn from_vertices(v1: DVec3, v2: DVec3, v3: DVec3) -> Box<Triangle> {
         let edges = [v2-v1, v3-v2, v1-v3];
+
         let a_side = -1.0*edges[2];
         let b_side = edges[0];
+
         let surface_coord_height = a_side - (a_side.dot(b_side)/(b_side).dot(b_side))*b_side;
+        let surface_tangent = surface_coord_height.normalize();
         let surface_coord_width = a_side - surface_coord_height;
         let surface_coord_height = surface_coord_height.length();
         let surface_coord_width = surface_coord_width.length().max(b_side.length());
 
-        Box::new(Triangle{vertices: [v1, v2, v3], edges, surface_coord_height, surface_coord_width})
+        let surface_normal = edges[0].cross(edges[1]).normalize();
+
+        Box::new(Triangle{vertices: [v1, v2, v3], edges, surface_coord_height, surface_coord_width, surface_tangent, surface_normal})
     }
 
     // basically using cosine law with lengths of triangle to find coords
@@ -74,31 +82,24 @@ impl Triangle {
 // TODO: generalize this for any polygon
 impl Intersectable for Triangle {
     fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
-        let edge_a = self.vertices[1] - self.vertices[0];
-        let edge_b = self.vertices[2] - self.vertices[1];
-
-        let normal = edge_a.cross(edge_b).normalize();
-
         // Only comparing against one of the vertices
         // So if the ray origin is waaay close, might not intersect when it should
-        let origin_dot = normal.dot(ray.origin - self.vertices[0]);
-        let direction_dot = normal.dot(ray.direction);
+        let origin_dot = self.surface_normal.dot(ray.origin - self.vertices[0]);
+        let direction_dot = self.surface_normal.dot(ray.direction);
         let hit_distance = -origin_dot / direction_dot;
         if hit_distance > Ray::MIN_DISTANCE {
             let hit_point = ray.point_at_distance(hit_distance);
-
-            let edge_c = self.vertices[0] - self.vertices[2];
 
             let vector_v1 = hit_point - self.vertices[0];
             let vector_v2 = hit_point - self.vertices[1];
             let vector_v3 = hit_point - self.vertices[2];
 
-            if edge_a.cross(vector_v1).dot(normal) >= 0.0 &&
-               edge_b.cross(vector_v2).dot(normal) >= 0.0 &&
-               edge_c.cross(vector_v3).dot(normal) >= 0.0 {
+            if self.edges[0].cross(vector_v1).dot(self.surface_normal) >= 0.0 &&
+               self.edges[1].cross(vector_v2).dot(self.surface_normal) >= 0.0 &&
+               self.edges[2].cross(vector_v3).dot(self.surface_normal) >= 0.0 {
 
                    let surface_coord = self.get_surface_coord(vector_v1.length(), vector_v2.length());
-                   return Some(Intersect::new(ray, hit_distance, hit_point, normal, surface_coord));
+                   return Some(Intersect::new(ray, hit_distance, hit_point, self.surface_normal, self.surface_tangent, surface_coord));
             }
         }
 
