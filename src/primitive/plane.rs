@@ -1,6 +1,52 @@
 use super::*;
 
 #[derive(Clone)]
+pub struct Plane {
+    pub origin: DVec3,
+    pub normal: DVec3,
+    pub tangent: DVec3,
+}
+
+impl Plane {
+    pub fn new(origin: DVec3, normal: DVec3) -> Box<Plane> {
+        // TODO: Hacky hack
+        let mut tangent = dvec3!(0.0, 1.0, 0.0);
+        if !(normal.angle(tangent).abs() > 0.0) {
+            tangent = dvec3!(0.0, 0.0, -1.0);
+        }
+        Plane::with_tangent(origin, normal, tangent)
+    }
+
+    pub fn with_tangent(origin: DVec3, normal: DVec3, tangent: DVec3) -> Box<Plane> {
+        assert!(normal.angle(tangent).abs() > 0.0);
+        let tangent = tangent.cross(normal).normalize();
+        let tangent = normal.cross(tangent).normalize();
+        let normal = normal.normalize();
+        Box::new(Plane{origin, normal, tangent})
+    }
+}
+
+impl Intersectable for Plane {
+    fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
+
+        // Get point on the plane
+        let origin_dot = self.normal.dot(ray.origin - self.origin);
+        let direction_dot = self.normal.dot(ray.direction);
+        let hit_distance = -origin_dot / direction_dot;
+        let hit_point = ray.point_at_distance(hit_distance);
+
+        if hit_distance >= Ray::MIN_DISTANCE {
+            // TODO: surface coords
+            let surface_coord = SurfaceCoord::new(0.0, 0.0); 
+            Some(Intersect::new(ray, hit_distance, hit_point, self.normal, self.tangent, surface_coord))
+        }
+        else {
+            None
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct Rectangle {
     pub width: f64,
     pub height: f64,
@@ -23,19 +69,16 @@ impl Intersectable for Rectangle {
         // Check point against bounds
         let horizontal_bound = self.width/2.0;
         let vertical_bound = self.height/2.0;
-        if hit_point.x < -horizontal_bound || hit_point.x > horizontal_bound ||
+        if  hit_distance < Ray::MIN_DISTANCE ||
+            hit_point.x < -horizontal_bound || hit_point.x > horizontal_bound ||
             hit_point.y < -vertical_bound || hit_point.y > vertical_bound {
-            return None;
+            None
         }
-
-        if hit_distance >= Ray::MIN_DISTANCE {
+        else {
             let u = (hit_point.x/horizontal_bound + 1.0)/2.0;
             let v = (hit_point.y/vertical_bound + 1.0)/2.0;
             let surface_coord = SurfaceCoord::new(u, v);
             Some(Intersect::new(ray, hit_distance, hit_point, surface_normal, dvec3!(0.0, 1.0, 0.0), surface_coord))
-        }
-        else {
-            None
         }
     }
 }

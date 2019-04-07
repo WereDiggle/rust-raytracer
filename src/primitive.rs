@@ -5,6 +5,7 @@ use std::f64::consts::PI;
 pub mod cube;
 pub mod sphere;
 pub mod plane;
+pub mod polyhedron;
 
 pub use self::cube::Cube;
 pub use self::cube::Tetrahedron;
@@ -12,6 +13,8 @@ pub use self::sphere::Sphere;
 pub use self::plane::Rectangle;
 pub use self::plane::Triangle;
 pub use self::plane::Polygon;
+pub use self::plane::Plane;
+pub use self::polyhedron::Polyhedron;
 
 #[derive(Clone)]
 pub struct OneWay {
