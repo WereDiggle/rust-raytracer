@@ -1,13 +1,17 @@
 use super::*;
+use euler::{DVec2, dvec2};
 
 #[derive(Clone)]
 pub struct Plane {
     pub origin: DVec3,
     pub normal: DVec3,
     pub tangent: DVec3,
+    pub surface_scale: DVec2,
 }
 
 impl Plane {
+    // TODO: too many constructors, should use a builder pattern
+    
     pub fn new(origin: DVec3, normal: DVec3) -> Box<Plane> {
         // TODO: Hacky hack
         let mut tangent = dvec3!(0.0, 1.0, 0.0);
@@ -18,11 +22,23 @@ impl Plane {
     }
 
     pub fn with_tangent(origin: DVec3, normal: DVec3, tangent: DVec3) -> Box<Plane> {
+        Plane::with_surface_scale(origin, normal, tangent, dvec2!(1.0, 1.0))
+    }
+
+    pub fn with_surface_scale(origin: DVec3, normal: DVec3, tangent: DVec3, surface_scale: DVec2) -> Box<Plane> {
         assert!(normal.angle(tangent).abs() > 0.0);
         let tangent = tangent.cross(normal).normalize();
         let tangent = normal.cross(tangent).normalize();
         let normal = normal.normalize();
-        Box::new(Plane{origin, normal, tangent})
+        Box::new(Plane{origin, normal, tangent, surface_scale})
+
+    }
+
+    fn get_surface_coord(&self, hit_point: DVec3) -> SurfaceCoord {
+        let a = hit_point - self.origin;
+        let v = (a.dot(self.tangent) / self.tangent.dot(self.tangent)) * self.tangent;
+        let u = a - v;
+        SurfaceCoord::new((u.length()/self.surface_scale.x).fract(), (v.length()/self.surface_scale.y).fract())
     }
 }
 
@@ -36,9 +52,7 @@ impl Intersectable for Plane {
         let hit_point = ray.point_at_distance(hit_distance);
 
         if hit_distance >= Ray::MIN_DISTANCE {
-            // TODO: surface coords
-            let surface_coord = SurfaceCoord::new(0.0, 0.0); 
-            Some(Intersect::new(ray, hit_distance, hit_point, self.normal, self.tangent, surface_coord))
+            Some(Intersect::new(ray, hit_distance, hit_point, self.normal, self.tangent, self.get_surface_coord(hit_point)))
         }
         else {
             None

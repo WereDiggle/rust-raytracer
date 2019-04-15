@@ -21,6 +21,10 @@ fn light4() -> Box<PointLight> {
     Box::new(PointLight::new(dvec3!(0.0, -300.0, 0.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
 }
 
+fn front_light() -> Box<PointLight> {
+    Box::new(PointLight::new(dvec3!(0.0, 0.0, 1000.0), Color::new(1.0, 1.0, 1.0), 1.0, (1.0, 0.0, 0.0)))
+}
+
 fn default_material(color: Color) -> Box<PhongShader> {
     PhongShader::new(color*0.5, color*0.5, color*0.01, 4.0)
 }
@@ -35,7 +39,7 @@ fn texture_room() {
             DMat4::identity(),
             vec!(
                 create_room_from_material(700.0, RoomMaterialScheme {
-                    ceiling: texture_phong_material("assets/images/textures/granite.jpg", 4.0, 6.0, 0.0, 2.0),
+                    ceiling: texture_phong_material("assets/images/textures/granite.jpg", 1.0, 0.0, 0.0, 2.0),
                     floor: texture_phong_material("assets/images/textures/wood_boards.jpg", 1.0, 0.0, 0.0, 1.0),
                     front: texture_phong_material("assets/images/textures/brick_wall.jpg", 1.0, 0.0, 0.0, 1.0),
                     back: default_material(Color::CYAN),
@@ -132,4 +136,27 @@ fn correlated_texture() {
 
     let image = render(scene, image(512, 512), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
     write_to_png( image, "output/correlated_texture");
+}
+
+#[test]
+fn plane_texture() {
+    let scene = build_scene(
+        vec!(front_light()),
+        no_ambient(),
+        None,
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    translation(0.0, 0.0, 0.0),
+                    texture_phong_material("assets/images/textures/keanu.jpg", 1.0, 0.0, 0.0, 4.0),
+                    Plane::with_tangent(dvec3!(0.0, 0.0, 0.0), dvec3!(0.0, 0.0, 1.0), dvec3!(0.0, 1.0, 0.0)),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let image = render(scene, image(512, 512), camera([0.0, 0.0, 1.0], [1.0, 0.0, 1.0]));
+    write_to_png( image, "output/plane_texture");
 }
