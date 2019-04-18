@@ -40,7 +40,7 @@ impl RenderConfig {
         RenderConfig {
             num_threads: NUM_THREADS,
             workload_split: WORKLOAD_SPLIT,
-            anti_alias: true,
+            anti_alias: false,
             aa_threshold: AA_THRESHOLD,
             aa_rays: AA_RAYS,
             recursion_depth: RECURSION_DEPTH,

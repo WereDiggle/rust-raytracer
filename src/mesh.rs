@@ -140,7 +140,7 @@ fn position_to_dvec3(positions: &Vec<f32>) -> Vec<DVec3> {
 
     let mut ret_vec: Vec<DVec3> = Vec::with_capacity(positions.len() / 3);
     for i in 0..positions.len() / 3 {
-        ret_vec.push(dvec3!(positions[i], positions[i+1], positions[i+2]));
+        ret_vec.push(dvec3!(positions[3*i], positions[3*i+1], positions[3*i+2]));
     }
     ret_vec
 }
@@ -149,7 +149,7 @@ fn dvec3_to_triangle(vertices: &Vec<DVec3>, faces: &Vec<u32>) -> Vec<Triangle> {
     assert!(faces.len() % 3 == 0);
     let mut ret_vec: Vec<Triangle> = Vec::with_capacity(faces.len());
     for i in 0..faces.len()/3 {
-        ret_vec.push(*Triangle::from_vertices(vertices[faces[i] as usize], vertices[faces[i+1] as usize], vertices[faces[i+2] as usize]));
+        ret_vec.push(*Triangle::from_vertices(vertices[faces[3*i] as usize], vertices[faces[3*i+1] as usize], vertices[faces[3*i+2] as usize]));
     }
     ret_vec
 }
