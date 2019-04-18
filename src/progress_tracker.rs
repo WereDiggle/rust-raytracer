@@ -1,7 +1,7 @@
 use std::sync::{mpsc};
 use super::ImageDimension;
 use std::thread;
-use std::time::{Instant, Duration};
+use std::time::{Instant};
 
 pub struct ProgressTracker {
     image_dimension: ImageDimension,

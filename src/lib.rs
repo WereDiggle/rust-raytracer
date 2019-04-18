@@ -2,6 +2,7 @@ extern crate snowflake;
 extern crate image;
 extern crate euler;
 extern crate rand;
+extern crate tobj;
 
 pub mod color;
 pub mod scene;
@@ -17,6 +18,7 @@ pub mod util;
 pub mod texture;
 pub mod normal_map;
 pub mod asset_manager;
+pub mod mesh;
 
 use image::{RgbImage};
 pub use color::*;
@@ -33,6 +35,7 @@ pub use geometry::matrix::*;
 pub use texture::*;
 pub use normal_map::*;
 pub use asset_manager::*;
+pub use mesh::*;
 
 // TODO: make this more robust, so it creates directories as well
 pub fn write_to_png(img: RgbImage, file_name: &str) {

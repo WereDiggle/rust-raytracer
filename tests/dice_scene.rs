@@ -107,6 +107,31 @@ fn dice_scene_hi_res() {
 }
 
 #[test]
+fn polygon_basic() {
+    let scene = build_scene(
+        vec!(front_light()),
+        no_ambient(),
+        None,
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                geometry_node(
+                    rotation(Axis::Y, 0.0),
+                    texture_phong_material("assets/images/textures/granite.jpg", 1.0, 0.0, 0.0, 1.0),
+                    Polygon::from_vertices(vec!(dvec3!(-10.0, -10.0, 0.0), 
+                                                dvec3!(0.0, -10.0, 0.0), 
+                                                dvec3!(10.0, 0.0, 0.0), 
+                                                dvec3!(10.0, 10.0, 0.0))),
+                    vec!()
+                ),
+            ),
+        ),
+    );
+    let image = render(scene, image(512, 512), camera([0.0, 0.0, 10.0], [0.0, 0.0, -10.0]));
+    write_to_png( image, "output/polygon_basic");
+}
+
+#[test]
 fn triangle_basic() {
     let scene = build_scene(
         vec!(front_light()),

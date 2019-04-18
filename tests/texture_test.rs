@@ -4,6 +4,7 @@ extern crate euler;
 use raytracer::*;
 use euler::*;
 use std::f64::consts::PI;
+use std::path::Path;
 
 fn light1() -> Box<PointLight> {
     Box::new(PointLight::new(dvec3!(-100.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
@@ -64,6 +65,45 @@ fn texture_room() {
 
     let image = render(scene, image(5000, 5000), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
     write_to_png( image, "output/texture_room");
+}
+
+#[test]
+fn mesh_basic() {
+    let scene = build_scene(
+        vec!(light1(), light2(), light3(), light4()),
+        no_ambient(),
+        None,
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                create_room_from_material(700.0, RoomMaterialScheme {
+                    ceiling: default_material(Color::WHITE),
+                    floor: ReflectionShader::new(Color::WHITE),
+                    front: ReflectionShader::new(Color::WHITE),
+                    back: default_material(Color::CYAN),
+                    left: default_material(Color::YELLOW),
+                    right: ReflectionShader::new(Color::WHITE),
+                }),
+                geometry_node(
+                    translation(0.0, 0.0, 0.0)*scaling(100.0, 100.0, 100.0),
+                    default_material(Color::RED),
+                    Mesh::from_path(&Path::new("assets/models/teapot.obj")),
+                    vec!(),
+                ),
+                /*
+                geometry_node(
+                    translation(0.0, 0.0, 0.0)*scaling(100.0, 100.0, 100.0),
+                    default_material(Color::RED),
+                    Cube::new(4.0),
+                    vec!(),
+                ),
+                */
+            ),
+        ),
+    );
+
+    let image = render(scene, image(512, 512), camera([-310.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
+    write_to_png( image, "output/mesh_basic");
 }
 
 #[test]

@@ -3,7 +3,6 @@ use scene::Traceable;
 use texture::TextureMappable;
 use normal_map::NormalMappable;
 use color::Color;
-use euler::DVec3;
 use geometry::{Intersect, Ray, SurfaceCoord};
 use std::collections::HashMap;
 use snowflake::ProcessUniqueId;

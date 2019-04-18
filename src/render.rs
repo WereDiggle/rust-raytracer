@@ -4,8 +4,6 @@ use euler::*;
 use color::*;
 use scene::*;
 use geometry::*;
-use shader::*;
-use primitive::*;
 use light::*;
 use multithread::*;
 use progress_tracker::*;
@@ -16,7 +14,7 @@ use std::f64::consts::PI;
 const AA_THRESHOLD: f64 = 0.08;
 
 // How many more rays to use for anti_aliasing
-const AA_RAYS: u32 = 5;
+const AA_RAYS: u32 = 3;
 
 // How many worker threads available for jobs
 const NUM_THREADS: usize = 8;

@@ -53,6 +53,49 @@ impl Polyhedron {
         ))
     }
 
+    pub fn deltohedron(size: f64) -> Box<Polyhedron> {
+        use euler::dvec2;
+        let half_size = size / 2.0;
+        let n = (
+            dvec3!(-1.0,1.0,1.0).normalize(),
+            dvec3!(1.0,1.0,1.0).normalize(),
+            dvec3!(-1.0,1.0,-1.0).normalize(),
+            dvec3!(1.0,1.0,-1.0).normalize(),
+
+            dvec3!(-1.0,-1.0,1.0).normalize(),
+            dvec3!(1.0,-1.0,1.0).normalize(),
+            dvec3!(-1.0,-1.0,-1.0).normalize(),
+            dvec3!(1.0,-1.0,-1.0).normalize(),
+        );
+        let up = dvec3!(0.0, 1.0, 0.0);
+        let down = dvec3!(0.0, -1.0, 0.0);
+        let o = (
+            dvec3!(-half_size,0.0,0.0),
+            dvec3!(0.0,0.0,half_size),
+            dvec3!(0.0,0.0,-half_size),
+            dvec3!(half_size,0.0,0.0),
+
+            dvec3!(0.0,0.0,half_size),
+            dvec3!(half_size,0.0,0.0),
+            dvec3!(-half_size,0.0,0.0),
+            dvec3!(0.0,0.0,-half_size),
+        );
+
+        // TODO: figure out length to surface scale
+        let surface_scale = dvec2!(size/(2.0 as f64).sqrt(), size/(2.0 as f64).sqrt());
+        Polyhedron::from_planes(vec!(
+            *Plane::with_surface_scale(o.0, n.0, up, surface_scale),
+            *Plane::with_surface_scale(o.1, n.1, up, surface_scale),
+            *Plane::with_surface_scale(o.2, n.2, up, surface_scale),
+            *Plane::with_surface_scale(o.3, n.3, up, surface_scale),
+
+            *Plane::with_surface_scale(o.4, n.4, down, surface_scale),
+            *Plane::with_surface_scale(o.5, n.5, down, surface_scale),
+            *Plane::with_surface_scale(o.6, n.6, down, surface_scale),
+            *Plane::with_surface_scale(o.7, n.7, down, surface_scale),
+        ))
+    }
+
     fn check_bounds(&self, intersect: Intersect, offset: usize) -> bool {
         for i in 1..self.planes.len() {
             let plane = &self.planes[(i+offset)%self.planes.len()];

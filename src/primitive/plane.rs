@@ -176,15 +176,15 @@ fn project_point_onto_plane(point: DVec3, normal: DVec3, origin: DVec3) -> DVec3
     point - (point - origin).dot(normal) * normal
 }
 
+// This only works for convex polygons, otherwise the bounds checking will fail
 impl Polygon {
     pub fn from_vertices(mut vertices: Vec<DVec3>) -> Box<Polygon> {
         assert!(vertices.len() >= 3);
         let mut edges: Vec<DVec3> = Vec::with_capacity(vertices.len());
 
         // Plane is defined by the first two and last vertix
-        for i in 0..2 {
-            edges.push(vertices[i] - vertices[(i-1)%vertices.len()])
-        }
+        edges.push(vertices[0] - vertices[vertices.len()-1]);
+        edges.push(vertices[1] - vertices[0]);
 
         // TODO: check cross order
         let normal = edges[0].cross(edges[1]).normalize();
@@ -205,6 +205,31 @@ impl Polygon {
 // TODO: generalize this for any polygon
 impl Intersectable for Polygon {
     fn get_closest_intersect(&self, ray: Ray) -> Option<Intersect> {
+        // Only comparing against one of the vertices
+        // So if the ray origin is waaay close, might not intersect when it should
+        let origin_dot = self.normal.dot(ray.origin - self.vertices[0]);
+        let direction_dot = self.normal.dot(ray.direction);
+        let hit_distance = -origin_dot / direction_dot;
+        if hit_distance > Ray::MIN_DISTANCE {
+            let hit_point = ray.point_at_distance(hit_distance);
+
+            let vertex_vectors: Vec<DVec3> = self.vertices.iter().map(|&x| hit_point - x).collect();
+
+            if let Some(_) = vertex_vectors.iter().zip(self.edges.iter())
+                             .try_fold(true, |acc, x| 
+                            if x.1.cross(*x.0).dot(self.normal) >= 0.0 {
+                                Some(true)
+                            } else {
+                                None
+                            }) 
+            {
+
+                    // TODO: figure out surface coord stuff
+                    let surface_coord = SurfaceCoord::new(0.0, 0.0);
+                    return Some(Intersect::new(ray, hit_distance, hit_point, self.normal, dvec3!(0.0, 1.0, 0.0), surface_coord));
+            }
+        }
+
         None
     }
 }

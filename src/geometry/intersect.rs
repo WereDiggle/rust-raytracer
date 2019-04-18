@@ -21,6 +21,13 @@ impl Intersect {
         Intersect{ ray, distance, hit_point, surface_normal, surface_tangent, surface_coord}
     }
 
+    // Only to be used for intial comparison
+    pub fn at_infinity(ray: Ray) -> Intersect {
+        use std::f64::{INFINITY};
+        use geometry::matrix::{INF};
+        Intersect{ray, distance: INFINITY, hit_point: INF, surface_normal: INF, surface_tangent: INF, surface_coord: SurfaceCoord::new(0.0, 0.0)}
+    }
+
     pub fn transform(&self, matrix: DMat4) -> Intersect {
         let ray = self.ray.transform(matrix);
         let hit_point = matrix::transform_point(matrix, self.hit_point);

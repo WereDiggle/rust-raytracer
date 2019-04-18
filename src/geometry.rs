@@ -1,4 +1,4 @@
-use euler::{dmat4, DMat4, DVec2, DVec3, dvec3, dvec4, dvec2};
+use euler::{dmat4, DMat4, DVec3, dvec3, dvec4};
 use shader::Shadable;
 use color::*;
 use snowflake::ProcessUniqueId;

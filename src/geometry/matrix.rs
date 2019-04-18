@@ -1,4 +1,15 @@
 use super::*;
+use std::f64::{INFINITY, NEG_INFINITY};
+
+pub const UP: DVec3 = DVec3{x: 0.0, y: 1.0, z: 0.0};
+pub const DOWN: DVec3 = DVec3{x: 0.0, y: -1.0, z: 0.0};
+pub const LEFT: DVec3 = DVec3{x: -1.0, y: 0.0, z: 0.0};
+pub const RIGHT: DVec3 = DVec3{x: 1.0, y: 0.0, z: 0.0};
+pub const BACK: DVec3 = DVec3{x: 0.0, y: 0.0, z: -1.0};
+pub const FRONT: DVec3 = DVec3{x: 0.0, y: 0.0, z: 1.0};
+
+pub const INF: DVec3 = DVec3{x: INFINITY, y: INFINITY, z: INFINITY};
+pub const NEG_INF: DVec3 = DVec3{x: NEG_INFINITY, y: NEG_INFINITY, z: NEG_INFINITY};
 
 pub enum Axis {
     X,
