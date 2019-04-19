@@ -52,6 +52,7 @@ impl ProgressTracker {
         let thread = thread::spawn(move || {
             let mut info = ProgressInfo::new(image_dimension.area());
             let start_time = Instant::now();
+            println!("START RENDERING");
             loop {
                 let message = receiver.recv().unwrap();
                 match message {
@@ -61,6 +62,7 @@ impl ProgressTracker {
                     },
                     ProgressMessage::StartAA(total) => {
                         info.reset(total);
+                        println!("START ANTIALIASING");
                     },
                     ProgressMessage::AAProgress(pixels) => {
                         info.add_progress(pixels);

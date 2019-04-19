@@ -33,7 +33,7 @@ fn default_material(color: Color) -> Box<PhongShader> {
 #[test]
 fn mesh_basic() {
     let scene = build_scene(
-        vec!(light1(), light2(), light3(), light4()),
+        vec!(light3(), light4()),
         no_ambient(),
         None,
         scene_node(
@@ -41,14 +41,14 @@ fn mesh_basic() {
             vec!(
                 create_room_from_material(700.0, RoomMaterialScheme {
                     ceiling: default_material(Color::WHITE),
-                    floor: ReflectionShader::new(Color::WHITE),
-                    front: ReflectionShader::new(Color::WHITE),
+                    floor: default_material(Color::WHITE),
+                    front: default_material(Color::WHITE),
                     back: default_material(Color::CYAN),
                     left: default_material(Color::YELLOW),
-                    right: ReflectionShader::new(Color::WHITE),
+                    right: default_material(Color::WHITE),
                 }),
                 geometry_node(
-                    translation(0.0, 0.0, 0.0)*scaling(100.0, 100.0, 100.0),
+                    translation(0.0, 0.0, 0.0)*scaling(50.0, 50.0, 50.0),
                     default_material(Color::RED),
                     Mesh::from_path(&Path::new("assets/models/teapot.obj")),
                     vec!(),

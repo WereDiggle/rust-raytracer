@@ -156,11 +156,11 @@ pub fn render_with_config(  scene: Scene,
                     image_chunk.push((distance, color));
 
                     // Send progress report
-                    // thread_progress_sender.send(ProgressMessage::Progress(1)).unwrap();
+                    thread_progress_sender.send(ProgressMessage::Progress(1)).unwrap();
                 }
 
                 // Only send progress after every line to not overload progress track
-                thread_progress_sender.send(ProgressMessage::Progress(width)).unwrap();
+                //thread_progress_sender.send(ProgressMessage::Progress(width)).unwrap();
             }
             thread_sender.send((chunk, image_chunk)).unwrap();
         });
