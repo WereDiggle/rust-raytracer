@@ -33,7 +33,7 @@ fn default_material(color: Color) -> Box<PhongShader> {
 #[test]
 fn mesh_basic() {
     let scene = build_scene(
-        vec!(light3(), light4()),
+        vec!(light1(), light2(), light3(), light4()),
         no_ambient(),
         None,
         scene_node(
@@ -48,9 +48,9 @@ fn mesh_basic() {
                     right: default_material(Color::WHITE),
                 }),
                 geometry_node(
-                    translation(0.0, 0.0, 0.0)*scaling(50.0, 50.0, 50.0),
+                    translation(0.0, 0.0, 0.0)*scaling(100.0, 100.0, 100.0),
                     default_material(Color::RED),
-                    Mesh::from_path(&Path::new("assets/models/teapot.obj")),
+                    Mesh::from_path(&Path::new("assets/models/my_teapot2.obj")),
                     vec!(),
                 ),
                 /*
