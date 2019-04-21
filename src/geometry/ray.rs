@@ -39,7 +39,7 @@ impl Ray {
         assert!(surface_normal.length() - 1.0 < 0.000001);
         // math
         let dot = self.direction.dot(surface_normal);
-        assert!(dot <= 0.0);
+        //assert!(dot <= 0.0);
 
         let reflection_direction = (self.direction - 2.0 * dot * surface_normal).normalize();
 

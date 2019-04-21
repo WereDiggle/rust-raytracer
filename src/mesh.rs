@@ -1,5 +1,5 @@
 use std::path::Path;
-use euler::{DVec3, dvec3};
+use euler::{DVec3, dvec3, DVec2, dvec2};
 use std::sync::Arc;
 use geometry::{Ray, SurfaceCoord, Intersectable, Intersect};
 use geometry::matrix::*;
@@ -138,6 +138,7 @@ struct Face {
 pub struct Mesh {
     positions: Arc<Vec<DVec3>>,
     vertex_normals: Arc<Vec<DVec3>>,
+    tex_coords: Arc<Vec<DVec2>>,
     faces: Arc<Vec<(usize, usize, usize)>>,
     face_normals: Arc<Vec<DVec3>>,
     face_area: Arc<Vec<f64>>,
@@ -150,6 +151,16 @@ fn f32_to_dvec3(positions: &Vec<f32>) -> Vec<DVec3> {
     let mut ret_vec: Vec<DVec3> = Vec::with_capacity(positions.len() / 3);
     for i in 0..positions.len() / 3 {
         ret_vec.push(dvec3!(positions[3*i], positions[3*i+1], positions[3*i+2]));
+    }
+    ret_vec
+}
+
+fn f32_to_dvec2(positions: &Vec<f32>) -> Vec<DVec2> {
+    assert!(positions.len() % 2 == 0);
+
+    let mut ret_vec: Vec<DVec2> = Vec::with_capacity(positions.len() / 2);
+    for i in 0..positions.len() / 2 {
+        ret_vec.push(dvec2!(positions[2*i], positions[2*i+1]));
     }
     ret_vec
 }
@@ -170,12 +181,14 @@ impl Mesh {
         let mut faces: Vec<(usize, usize, usize)> = vec!();
         let mut positions: Vec<DVec3> = vec!();
         let mut vertex_normals: Vec<DVec3> = vec!();
+        let mut tex_coords: Vec<DVec2> = vec!();
         let mut bounds = BoundingBox::bound_nothing();
         for m in models.iter() {
             let mesh = &m.mesh;
             faces.append(&mut indices_to_faces(positions.len(), &mesh.indices));
             positions.append(&mut f32_to_dvec3(&mesh.positions));
             vertex_normals.append(&mut f32_to_dvec3(&mesh.normals));
+            tex_coords.append(&mut f32_to_dvec2(&mesh.texcoords));
         }
         bounds.expand(&positions);
         let mut face_normals: Vec<DVec3> = Vec::with_capacity(faces.len());
@@ -190,11 +203,12 @@ impl Mesh {
 
         let positions = Arc::new(positions);
         let vertex_normals = Arc::new(vertex_normals);
+        let tex_coords = Arc::new(tex_coords);
         let faces = Arc::new(faces);
         let face_normals = Arc::new(face_normals);
         let face_area = Arc::new(face_area);
         
-        Box::new(Mesh{positions, vertex_normals, faces, face_normals, face_area, bounds})
+        Box::new(Mesh{positions, vertex_normals, tex_coords, faces, face_normals, face_area, bounds})
     }
 
     fn check_triangle(&self, face: usize, ray: Ray) -> Option<Intersect> {
@@ -217,22 +231,34 @@ impl Mesh {
             let hit_v3 = hit_point - v3;
             let e3 = v1 - v3;
 
-            let v = e1.cross(hit_v1);
+            let mut v = e1.cross(hit_v1);
             if v.dot(normal) < 0.0 {return None;}
 
-            let w = e2.cross(hit_v2);
+            let mut w = e2.cross(hit_v2);
             if w.dot(normal) < 0.0 {return None;}
 
-            let u = e3.cross(hit_v3);
+            let mut u = e3.cross(hit_v3);
             if u.dot(normal) < 0.0 {return None;}
 
             let u = u.length() * self.face_area[face];
             let v = v.length() * self.face_area[face];
             let w = 1.0 - u - v;
-            let normal = w*self.vertex_normals[i1] + u*self.vertex_normals[i2] + v*self.vertex_normals[i3];
 
+            // TODO: find a more complete obj loader, or write our own
+            let normal = if self.vertex_normals.len() > i1 {
+                w*self.vertex_normals[i1] + u*self.vertex_normals[i2] + v*self.vertex_normals[i3]
+            } else {
+                normal
+            };
+            
             // TODO: surface coords for a mesh
-            let surface_coord = SurfaceCoord::new(0.0, 0.0);
+            let surface_coord = if self.tex_coords.len() > i1 {
+                let tmp = w*self.tex_coords[i1] + u*self.tex_coords[i2] + v*self.tex_coords[i3];
+                SurfaceCoord::new(tmp.x, tmp.y)
+            } else {
+                SurfaceCoord::new(0.0, 0.0)
+            };
+
             return Some(Intersect::new(ray, hit_distance, hit_point, normal, UP, surface_coord));
         }
 

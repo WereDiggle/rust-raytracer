@@ -11,10 +11,10 @@ use rand::prelude::*;
 use std::f64::consts::PI;
 
 // How different must neighbouring pixels be to be anti-aliased
-const AA_THRESHOLD: f64 = 0.08;
+const AA_THRESHOLD: f64 = 0.1;
 
 // How many more rays to use for anti_aliasing
-const AA_RAYS: u32 = 3;
+const AA_RAYS: u32 = 5;
 
 // How many worker threads available for jobs
 const NUM_THREADS: usize = 8;
@@ -40,7 +40,7 @@ impl RenderConfig {
         RenderConfig {
             num_threads: NUM_THREADS,
             workload_split: WORKLOAD_SPLIT,
-            anti_alias: false,
+            anti_alias: true,
             aa_threshold: AA_THRESHOLD,
             aa_rays: AA_RAYS,
             recursion_depth: RECURSION_DEPTH,

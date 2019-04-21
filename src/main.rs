@@ -68,6 +68,8 @@ fn mesh_basic() {
     write_to_png( image, "output/mesh_basic");
 }
 fn main() {
-    let (models, materials) = tobj::load_obj(Path::new("assets/models/my_teapot2.obj")).unwrap();
-    tobj::print_model_info(&models, &materials);
+    //let (models, materials) = tobj::load_obj(Path::new("assets/models/my_teapot2.obj")).unwrap();
+    //tobj::print_model_info(&models, &materials);
+    let x: f64 = -2.3345323;
+    println!("{}", x.fract());
 }

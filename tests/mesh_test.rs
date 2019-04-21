@@ -40,17 +40,17 @@ fn mesh_basic() {
             DMat4::identity(),
             vec!(
                 create_room_from_material(700.0, RoomMaterialScheme {
-                    ceiling: default_material(Color::WHITE),
-                    floor: default_material(Color::WHITE),
-                    front: default_material(Color::WHITE),
+                    ceiling: default_material(Color::RED),
+                    floor: default_material(Color::BLUE),
+                    front: default_material(Color::MAGENTA),
                     back: default_material(Color::CYAN),
                     left: default_material(Color::YELLOW),
-                    right: default_material(Color::WHITE),
+                    right: default_material(Color::GREEN),
                 }),
                 geometry_node(
-                    translation(0.0, 0.0, 0.0)*scaling(100.0, 100.0, 100.0),
-                    default_material(Color::RED),
-                    Mesh::from_path(&Path::new("assets/models/my_teapot2.obj")),
+                    translation(0.0, 0.0, 0.0)*scaling(200.0, 200.0, 200.0),
+                    texture_phong_material("assets/images/textures/test1.png", 1.0, 0.0, 0.0, 1.0),
+                    Mesh::from_path(&Path::new("assets/models/monkey2.obj")),
                     vec!(),
                 ),
                 /*
@@ -65,6 +65,6 @@ fn mesh_basic() {
         ),
     );
 
-    let image = render(scene, image(512, 512), camera([-310.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
+    let image = render(scene, image(256, 256), camera([-310.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/mesh_basic");
 }
