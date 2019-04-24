@@ -65,6 +65,6 @@ fn mesh_basic() {
         ),
     );
 
-    let image = render(scene, image(256, 256), camera([-310.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
+    let image = render(scene, image(256, 256), camera([-310.0, 200.0, 300.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/mesh_basic");
 }

@@ -1,11 +1,11 @@
 use scene::Scene;
-use scene::Traceable;
 use texture::TextureMappable;
 use normal_map::NormalMappable;
 use color::Color;
-use geometry::{Intersect, Ray, SurfaceCoord};
+use geometry::{Intersect, Ray};
 use std::collections::HashMap;
 use snowflake::ProcessUniqueId;
+use light::Illum;
 
 pub mod phong;
 pub mod texture;
