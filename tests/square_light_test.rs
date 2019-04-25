@@ -55,7 +55,7 @@ fn square_light_basic() {
 
     // config should be using a builder pattern
     let mut config = RenderConfig::default();
-    config.anti_alias = false;
+    config.anti_alias = true;
     let image = render_with_config(scene, image(256, 256), camera([0.0, 0.0, 100.0], [0.0, 0.0, 0.0]), config);
     write_to_png( image, "output/square_light_sphere");
 }
@@ -93,6 +93,49 @@ fn light_room() {
         ),
     );
 
-    let image = render(scene, image(1000, 1000), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]));
+    let mut config = RenderConfig::default();
+    config.anti_alias = false;
+    let image = render_with_config(scene, image(256, 256), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]), config);
     write_to_png( image, "output/light_room");
+}
+
+#[test]
+fn subdivision_light() {
+    let scene = build_scene(
+        vec!(square_light(dvec3!(0.0, 340.0, 0.0), 600.0)),
+        no_ambient(),
+        None,
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                create_room_from_material(700.0, RoomMaterialScheme {
+                    ceiling: PhongShader::new(Color::WHITE, Color::BLACK, Color::BLACK, 1.0),
+                    floor: PhongShader::new(Color::WHITE, Color::BLACK, Color::BLACK, 1.0),
+                    front: PhongShader::new(Color::WHITE, Color::BLACK, Color::BLACK, 1.0),
+                    back: PhongShader::new(Color::WHITE, Color::BLACK, Color::BLACK, 1.0),
+                    left: PhongShader::new(Color::WHITE, Color::BLACK, Color::BLACK, 1.0),
+                    right: PhongShader::new(Color::WHITE, Color::BLACK, Color::BLACK, 1.0),
+                }),
+                /*
+                geometry_node(
+                    translation(-150.0, -270.0, 0.0),
+                    PhongShader::new(Color::WHITE*0.3, Color::WHITE*0.7, Color::BLACK, 4.0),
+                    Sphere::from_radius(80.0),
+                    vec!(),
+                ),
+                geometry_node(
+                    translation(150.0, -270.0, 80.0),
+                    texture_phong_material("assets/images/textures/cube_rgb_gradient.png", 0.5, 0.5, 0.0, 4.0),
+                    Cube::new(160.0),
+                    vec!(),
+                ),
+                */
+            ),
+        ),
+    );
+
+    let mut config = RenderConfig::default();
+    config.anti_alias = false;
+    let image = render_with_config(scene, image(256, 256), camera([-300.0, -300.0, 300.0], [300.0, 300.0, -300.0]), config);
+    write_to_png( image, "output/subdivision_light");
 }
