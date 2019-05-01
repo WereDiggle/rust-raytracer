@@ -94,8 +94,8 @@ fn light_room() {
     );
 
     let mut config = RenderConfig::default();
-    config.anti_alias = false;
-    let image = render_with_config(scene, image(256, 256), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]), config);
+    config.anti_alias = true;
+    let image = render_with_config(scene, image(1000, 1000), camera([-300.0, 0.0, 300.0], [350.0, -350.0, -350.0]), config);
     write_to_png( image, "output/light_room");
 }
 

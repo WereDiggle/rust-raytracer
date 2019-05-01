@@ -188,13 +188,17 @@ impl SquareLight {
 
     fn subdivide_points(&self, min: DVec2, max: DVec2, depth: usize) -> Vec<DVec3> {
         let change = max - min;
+        let mut rng = rand::thread_rng();
         if depth == SquareLight::SUB_DEPTH {
-            let change = change*0.25;
+            let change = change*0.1;
+            let r = change * 0.5;
             let low = min+change*0.5;
             let mut ret_vec: Vec<DVec3> = Vec::with_capacity(8);
-            for i in 0..4 {
-                for j in 0..4 {
-                    ret_vec.push(self.position + dvec3!(low.x+(i as f64 * change.x), 0.0, low.y+(j as f64 * change.y)));
+            for i in 0..10 {
+                for j in 0..10 {
+                    ret_vec.push(self.position + dvec3!(low.x+(i as f64 * change.x)+rng.gen_range(-r.x, r.x), 
+                                                        0.0, 
+                                                        low.y+(j as f64 * change.y)+rng.gen_range(-r.x, r.x)));
                 }
             }
             ret_vec
@@ -204,12 +208,13 @@ impl SquareLight {
             let high = min + change * 0.75;
             let left_high = dvec2!(low.x, low.y + change.y*0.5);
             let right_low = dvec2!(low.x + change.x*0.5, low.y);
+            let r = change * 0.25;
 
             vec!(
-                self.position + dvec3!(left_high.x, 0.0, left_high.y),
-                self.position + dvec3!(high.x, 0.0, high.y),
-                self.position + dvec3!(low.x, 0.0, low.y),
-                self.position + dvec3!(right_low.x, 0.0, right_low.y),
+                self.position + dvec3!(left_high.x+rng.gen_range(-r.x, r.x), 0.0, left_high.y+rng.gen_range(-r.y, r.y)),
+                self.position + dvec3!(high.x+rng.gen_range(-r.x, r.x), 0.0, high.y+rng.gen_range(-r.y, r.y)),
+                self.position + dvec3!(low.x+rng.gen_range(-r.x, r.x), 0.0, low.y+rng.gen_range(-r.y, r.y)),
+                self.position + dvec3!(right_low.x+rng.gen_range(-r.x, r.x), 0.0, right_low.y+rng.gen_range(-r.y, r.y)),
             )
         }
     }
@@ -363,9 +368,9 @@ impl Lightable for SquareLight {
     }
 
     fn get_illums_at(&self, scene: &Scene, intersect: Intersect) -> Vec<Illum> {
-        //let half_size: f64 = self.size*0.5;
-        //self.subdivide_illumination(dvec2!(-half_size, -half_size), dvec2!(half_size, half_size), scene, &intersect, SquareLight::SUB_DEPTH)
-        self.progressive_random_illumination(scene, &intersect)
+        let half_size: f64 = self.size*0.5;
+        self.subdivide_illumination(dvec2!(-half_size, -half_size), dvec2!(half_size, half_size), scene, &intersect, SquareLight::SUB_DEPTH)
+        //self.progressive_random_illumination(scene, &intersect)
     }
 }
 

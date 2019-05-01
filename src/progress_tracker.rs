@@ -11,8 +11,8 @@ pub struct ProgressTracker {
 
 // TODO: separate struct for storing progress info
 struct ProgressInfo {
-    total: u32,
-    progress: u32,
+    pub total: u32,
+    pub progress: u32,
 }
 
 impl ProgressInfo {
@@ -61,8 +61,8 @@ impl ProgressTracker {
                         printr(&info.get_percentage());
                     },
                     ProgressMessage::StartAA(total) => {
+                        println!("START ANTIALIASING: {} / {}", total, info.total);
                         info.reset(total);
-                        println!("START ANTIALIASING");
                     },
                     ProgressMessage::AAProgress(pixels) => {
                         info.add_progress(pixels);
