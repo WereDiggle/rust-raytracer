@@ -61,7 +61,7 @@ impl ProgressTracker {
                         printr(&info.get_percentage());
                     },
                     ProgressMessage::StartAA(total) => {
-                        println!("START ANTIALIASING: {} / {}", total, info.total);
+                        println!("START ANTIALIASING: {} / {} = {}%", total, info.total, (total as f64)/(info.total as f64) * 100.0);
                         info.reset(total);
                     },
                     ProgressMessage::AAProgress(pixels) => {

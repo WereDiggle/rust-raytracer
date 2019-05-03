@@ -11,7 +11,7 @@ use rand::prelude::*;
 use std::f64::consts::PI;
 
 // How different must neighbouring pixels be to be anti-aliased
-const AA_THRESHOLD: f64 = 0.1;
+const AA_THRESHOLD: f64 = 0.08;
 
 // How many more rays to use for anti_aliasing
 const AA_RAYS: u32 = 5;
