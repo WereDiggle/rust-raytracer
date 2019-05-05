@@ -11,10 +11,37 @@ pub const FRONT: DVec3 = DVec3{x: 0.0, y: 0.0, z: 1.0};
 pub const INF: DVec3 = DVec3{x: INFINITY, y: INFINITY, z: INFINITY};
 pub const NEG_INF: DVec3 = DVec3{x: NEG_INFINITY, y: NEG_INFINITY, z: NEG_INFINITY};
 
+#[derive(Clone, Copy)]
 pub enum Axis {
     X,
     Y,
     Z,
+}
+
+pub fn max_bound(a: DVec3, b: DVec3) -> DVec3 {
+    dvec3!(
+        a.x.max(b.x),
+        a.y.max(b.y),
+        a.z.max(b.z)
+    )
+}
+
+pub fn min_bound(a: DVec3, b: DVec3) -> DVec3 {
+    dvec3!(
+        a.x.min(b.x),
+        a.y.min(b.y),
+        a.z.min(b.z)
+    )
+}
+
+impl Axis {
+    pub fn value(&self, v: DVec3) -> f64 {
+        match self {
+            Axis::X => v.x,
+            Axis::Y => v.y,
+            Axis::Z => v.z,
+        }
+    }
 }
 
 pub fn transform_point(matrix: DMat4, point: DVec3) -> DVec3 {

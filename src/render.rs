@@ -217,6 +217,7 @@ pub fn render_with_config(  scene: Scene,
         for _ in 0..render_config.workload_split {
 
             // Clone these for the threads to own a copy
+            // TODO: there has to be a better way for threads to access this info
             let thread_sender = sender.clone();
             let thread_progress_sender = progress_tracker.get_sender();
             let thread_scene = scene.clone();

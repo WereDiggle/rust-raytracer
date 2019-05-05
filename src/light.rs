@@ -189,7 +189,7 @@ impl SquareLight {
     fn subdivide_points(&self, min: DVec2, max: DVec2, depth: usize) -> Vec<DVec3> {
         let change = max - min;
         let mut rng = rand::thread_rng();
-        if depth == SquareLight::SUB_DEPTH {
+        if false {
             let change = change*0.1;
             let r = change * 0.5;
             let low = min+change*0.5;
