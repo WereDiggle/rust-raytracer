@@ -45,7 +45,7 @@ impl RenderConfig {
             aa_threshold: AA_THRESHOLD,
             aa_rays: AA_RAYS,
             recursion_depth: RECURSION_DEPTH,
-            interactive: true,
+            interactive: false,
         }
     }
 }

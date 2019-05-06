@@ -162,20 +162,22 @@ enum BoundingNode {
 
 impl BoundingNode {
     pub const MAX_PRIMS: usize = 16;
-    pub const MAX_DEPTH: u8 = 1;
+    pub const MAX_DEPTH: u8 = 2;
 
     pub fn check_intersect(&self, mesh: &Mesh, ray: Ray, min: DVec3, max: DVec3) -> Option<Intersect> {
 
         let bounding_box = BoundingBox{min, max};
+        //println!("BoundingNode check_intersect bounds: min: {}, max: {}", min, max);
         let hit_point = match bounding_box.check_intersect(ray) {
             Bound::Hit(intersect) => intersect.hit_point,
             Bound::Inside => ray.origin,
             Bound::Miss => return None,
         };
+        ///println!("BoundingNode check_intersect hit_point: {}", hit_point);
 
         match self {
             BoundingNode::Interior{axis, split, child} => {
-
+                //println!("BoundingNode check_intersect interior node: split: {}", split);
                 // First check if the ray intersects with this node at all
                 // Figure out the new mins and maxs
                 let mut split_min = min;
@@ -215,13 +217,16 @@ impl BoundingNode {
                 };
 
                 let mut min_distance = INF.x;
+                let mut ret_int: Option<Intersect> = None;
                 // If there's an intersection from that child that's doesn't cross the split
                 if let Some(intersect) = child[first].check_intersect(mesh, ray, first_min, first_max) {
+                    ret_int = Some(intersect);
                     if same_side(axis.value(intersect.hit_point)) {
                         // return that intersect
-                        return Some(intersect);
+                        return ret_int;
                     }
                     else {
+                        // Use this distance to check the other child
                         min_distance = intersect.distance;
                     }
                 }
@@ -232,7 +237,7 @@ impl BoundingNode {
                         return Some(intersect);
                     }
                 }
-                None
+                ret_int
                 /*
                 Some(Intersect::new(
                     ray, 
@@ -245,6 +250,7 @@ impl BoundingNode {
                 */
             },
             BoundingNode::Leaf{prims} => {
+                //println!("BoundingNode check_intersect leaf node");
                 // Check triangles of all prims 
                 let mut min_distance = INF.x;
                 let mut ret_int: Option<Intersect> = None;
@@ -304,7 +310,7 @@ impl BoundingNode {
                     prim_overlap+=1;
                 }
             }
-            println!("SPlit at depth {}: {}", BoundingNode::MAX_DEPTH - depth, split);
+            //println!("SPlit at depth {}: {}", BoundingNode::MAX_DEPTH - depth, split);
 
             // TODO: remove
             if prim_overlap > 0 {
@@ -312,7 +318,7 @@ impl BoundingNode {
             }
 
             // Create Bounding node with recursive call to create children
-            let axis = match axis {
+            let next_axis = match axis {
                 Axis::X => Axis::Y,
                 Axis::Y => Axis::Z,
                 Axis::Z => Axis::X,
@@ -322,8 +328,8 @@ impl BoundingNode {
                 axis,
                 split,
                 child: [
-                    Box::new(BoundingNode::split_node(axis, depth-1, prims)),
-                    Box::new(BoundingNode::split_node(axis, depth-1, child2_prims)),
+                    Box::new(BoundingNode::split_node(next_axis, depth-1, prims)),
+                    Box::new(BoundingNode::split_node(next_axis, depth-1, child2_prims)),
                 ],
             }
         }
