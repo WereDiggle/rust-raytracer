@@ -73,7 +73,7 @@ impl ProgressTracker {
                     },
                 }
             }
-            println!("Elapsed Time: {} seconds", start_time.elapsed().as_secs());
+            println!("Elapsed Time: {} seconds", start_time.elapsed().as_millis() as f64 / 1000.0);
         });
 
         ProgressTracker {

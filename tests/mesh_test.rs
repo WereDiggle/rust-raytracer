@@ -15,7 +15,7 @@ fn light2() -> Box<PointLight> {
 }
 
 fn light3() -> Box<PointLight> {
-    Box::new(PointLight::new(dvec3!(-300.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 450000.0, (0.0, 0.0, 1.0*PI)))
+    Box::new(PointLight::new(dvec3!(-300.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
 }
 
 fn light4() -> Box<PointLight> {
@@ -37,7 +37,7 @@ fn default_material(color: Color) -> Box<PhongShader> {
 #[test]
 fn mesh_basic() {
     let scene = build_scene(
-        vec!(light3()),
+        vec!(light1(), light2(), light3(), light4()),
         no_ambient(),
         None,
         scene_node(

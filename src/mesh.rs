@@ -161,8 +161,8 @@ enum BoundingNode {
 }
 
 impl BoundingNode {
-    pub const MAX_PRIMS: usize = 16;
-    pub const MAX_DEPTH: u8 = 2;
+    pub const MAX_PRIMS: usize = 40;
+    pub const MAX_DEPTH: u8 = 33;
 
     pub fn check_intersect(&self, mesh: &Mesh, ray: Ray, min: DVec3, max: DVec3) -> Option<Intersect> {
 
@@ -284,6 +284,7 @@ impl BoundingNode {
                   -> BoundingNode {
 
         if depth == 0 || prims.len() <= BoundingNode::MAX_PRIMS {
+            //println!("leaf size: {}", prims.len());
             BoundingNode::Leaf{
                 prims: prims.iter().map(|x| x.0).collect()
             }
@@ -311,11 +312,6 @@ impl BoundingNode {
                 }
             }
             //println!("SPlit at depth {}: {}", BoundingNode::MAX_DEPTH - depth, split);
-
-            // TODO: remove
-            if prim_overlap > 0 {
-                println!("primitive overlap at depth {}: {}", BoundingNode::MAX_DEPTH - depth, child2_prims.len() - prims.len());
-            }
 
             // Create Bounding node with recursive call to create children
             let next_axis = match axis {
