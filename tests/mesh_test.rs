@@ -15,7 +15,7 @@ fn light2() -> Box<PointLight> {
 }
 
 fn light3() -> Box<PointLight> {
-    Box::new(PointLight::new(dvec3!(-300.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 150000.0, (0.0, 0.0, 1.0*PI)))
+    Box::new(PointLight::new(dvec3!(-300.0, 300.0, 300.0), Color::new(1.0, 1.0, 1.0), 450000.0, (0.0, 0.0, 1.0*PI)))
 }
 
 fn light4() -> Box<PointLight> {
@@ -37,7 +37,7 @@ fn default_material(color: Color) -> Box<PhongShader> {
 #[test]
 fn mesh_basic() {
     let scene = build_scene(
-        vec!(light1(), light2(), light3(), light4()),
+        vec!(light3()),
         no_ambient(),
         None,
         scene_node(
@@ -52,8 +52,8 @@ fn mesh_basic() {
                     right: default_material(Color::GREEN),
                 }),
                 geometry_node(
-                    translation(0.0, 0.0, 0.0)*scaling(200.0, 200.0, 200.0),
-                    texture_phong_material("assets/images/textures/test1.png", 1.0, 0.0, 0.0, 1.0),
+                    translation(0.0, 0.0, 0.0)*scaling(200.0, 200.0, 200.0)*rotation(Axis::Y, -30.0),
+                    texture_phong_material("assets/images/textures/test3.png", 1.0, 0.0, 0.0, 1.0),
                     Mesh::from_path(&Path::new("assets/models/monkey2.obj")),
                     vec!(),
                 ),
@@ -69,7 +69,9 @@ fn mesh_basic() {
         ),
     );
 
-    let image = render(scene, image(256, 256), camera([-310.0, 200.0, 300.0], [0.0, 0.0, 0.0]));
+    let mut config = RenderConfig::default();
+    config.anti_alias = false;
+    let image = render_with_config(scene, image(256, 256), camera([-310.0, 200.0, 300.0], [0.0, 0.0, 0.0]), config);
     write_to_png( image, "output/mesh_basic");
 }
 

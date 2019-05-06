@@ -33,6 +33,7 @@ pub struct RenderConfig {
     pub aa_threshold: f64,
     pub aa_rays: u32,
     pub recursion_depth: u32,
+    pub interactive: bool,
 }
 
 impl RenderConfig {
@@ -44,6 +45,7 @@ impl RenderConfig {
             aa_threshold: AA_THRESHOLD,
             aa_rays: AA_RAYS,
             recursion_depth: RECURSION_DEPTH,
+            interactive: true,
         }
     }
 }
@@ -128,6 +130,18 @@ pub fn render_with_config(  scene: Scene,
                                       1, 
                                       1)).xyz()
     };
+
+    // TODO: actually implement this
+    if render_config.interactive {
+        loop {
+            let (x, y) = get_input();
+            let pixel_location = calculate_pixel_location(x as f64 + 0.5, y as f64 + 0.5);
+            let prime_ray = Ray::from_destination(camera_config.origin, pixel_location, render_config.recursion_depth);
+            let (distance, color) = scene.cast_ray_get_distance(prime_ray);
+            println!("Distance: {}", distance);
+            println!("Color: {:?}", color);
+        }
+    }
 
     // Initialization of Thread Resources
     let thread_pool = ThreadPool::new(render_config.num_threads);
@@ -295,6 +309,47 @@ pub fn render_with_config(  scene: Scene,
 
     // Shove all those colors into an RgbImage
     make_image(image_dimension.width, image_dimension.height, color_vec.into_iter().map(|x| x.1).collect())
+}
+
+fn get_input() -> (usize, usize) {
+    use std::io::stdin;
+    let mut x = 0;
+    let mut y = 0;
+    let mut input = String::new();
+    println!("Enter pixel X: ");
+    'x: loop {
+        input.clear();
+        match stdin().read_line(&mut input) {
+            Ok(_) => {
+                match input.trim_end().parse::<usize>() {
+                    Ok(num) => {
+                        x = num;
+                        break 'x;
+                    },
+                    Err(error) => println!("Invalid X: {}", error),
+                }
+            }
+            Err(error) => println!("Error of some kind: {}", error),
+        }
+    }
+    println!("Enter pixel Y: ");
+    'y: loop {
+        input.clear();
+        match stdin().read_line(&mut input) {
+            Ok(_) => {
+                match input.trim_end().parse::<usize>() {
+                    Ok(num) => {
+                        y = num;
+                        break 'y;
+                    },
+                    Err(error) => println!("Invalid Y: {}", error),
+                }
+            }
+            Err(error) => println!("Error of some kind: {}", error),
+        }
+    }
+    println!("Entered: ({}, {})", x, y);
+    (x, y)
 }
 
 // integer division, but it rounds up

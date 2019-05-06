@@ -67,9 +67,18 @@ fn mesh_basic() {
     let image = render(scene, image(512, 512), camera([-310.0, 300.0, 300.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/mesh_basic");
 }
+
 fn main() {
-    //let (models, materials) = tobj::load_obj(Path::new("assets/models/my_teapot2.obj")).unwrap();
-    //tobj::print_model_info(&models, &materials);
-    let x: f64 = -2.3345323;
-    println!("{}", x.fract());
+    use std::io::stdin;
+    let mut input = String::new();
+    loop {
+        match stdin().read_line(&mut input) {
+            Ok(n) => {
+                println!("{} bytes read", n);
+                println!("{}", input);
+            }
+            Err(error) => println!("Error of some kind"),
+        }
+
+    }
 }

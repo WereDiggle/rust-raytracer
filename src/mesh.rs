@@ -162,80 +162,107 @@ enum BoundingNode {
 
 impl BoundingNode {
     pub const MAX_PRIMS: usize = 16;
-    pub const MAX_DEPTH: u8 = 30;
+    pub const MAX_DEPTH: u8 = 1;
 
     pub fn check_intersect(&self, mesh: &Mesh, ray: Ray, min: DVec3, max: DVec3) -> Option<Intersect> {
+
+        let bounding_box = BoundingBox{min, max};
+        let hit_point = match bounding_box.check_intersect(ray) {
+            Bound::Hit(intersect) => intersect.hit_point,
+            Bound::Inside => ray.origin,
+            Bound::Miss => return None,
+        };
+
         match self {
             BoundingNode::Interior{axis, split, child} => {
 
                 // First check if the ray intersects with this node at all
-                let bounding_box = BoundingBox{min, max};
-                if let Bound::Hit(intersect) = bounding_box.check_intersect(ray) {
-                    // Figure out the new mins and maxs
-                    let mut split_min = min;
-                    let mut split_max = max;
-                    match axis {
-                        Axis::X => {
-                            split_min.x = *split;
-                            split_max.x = *split;
-                        },
-                        Axis::Y => {
-                            split_min.y = *split;
-                            split_max.y = *split;
-                        },
-                        Axis::Z => {
-                            split_min.z = *split;
-                            split_max.z = *split;
-                        },
+                // Figure out the new mins and maxs
+                let mut split_min = min;
+                let mut split_max = max;
+                match axis {
+                    Axis::X => {
+                        split_min.x = *split;
+                        split_max.x = *split;
+                    },
+                    Axis::Y => {
+                        split_min.y = *split;
+                        split_max.y = *split;
+                    },
+                    Axis::Z => {
+                        split_min.z = *split;
+                        split_max.z = *split;
+                    },
+                }
+
+                // Then figure out which child it goes through first
+                let is_first = axis.value(hit_point) <= *split;
+                let same_side = |x| {
+                    if is_first {
+                        x <= *split
+                    }    
+                    else {
+                        x > *split
                     }
+                };
 
-                    // Then figure out which child it goes through first
-                    let first = axis.value(intersect.hit_point) <= *split;
-                    let same_side = |x| {
-                        if first {
-                            x <= *split
-                        }    
-                        else {
-                            x > *split
-                        }
-                    };
+                let (first, first_min, first_max, second, second_min, second_max) = 
+                if is_first {
+                    (0, min, split_max, 1, split_min, max)
+                }
+                else {
+                    (1, split_min, max, 0, min, split_max)
+                };
 
-                    let (first, first_min, first_max, second, second_min, second_max) = 
-                    if first {
-                        (0, min, split_max, 1, split_min, max)
+                let mut min_distance = INF.x;
+                // If there's an intersection from that child that's doesn't cross the split
+                if let Some(intersect) = child[first].check_intersect(mesh, ray, first_min, first_max) {
+                    if same_side(axis.value(intersect.hit_point)) {
+                        // return that intersect
+                        return Some(intersect);
                     }
                     else {
-                        (1, split_min, max, 0, min, split_max)
-                    };
-
-                    let mut min_distance = INF.x;
-                    // If there's an intersection from that child that's doesn't cross the split
-                    if let Some(intersect) = child[first].check_intersect(mesh, ray, first_min, first_max) {
-                        if same_side(axis.value(intersect.hit_point)) {
-                            // return that intersect
-                            return Some(intersect);
-                        }
-                        else {
-                            min_distance = intersect.distance;
-                        }
+                        min_distance = intersect.distance;
                     }
+                }
 
-                    // At this point, we haven't returned so we need to check the other child
-                    if let Some(intersect) = child[second].check_intersect(mesh, ray, second_min, second_max) {
-                        if intersect.distance < min_distance {
-                            return Some(intersect);
-                        }
+                // At this point, we haven't returned so we need to check the other child
+                if let Some(intersect) = child[second].check_intersect(mesh, ray, second_min, second_max) {
+                    if intersect.distance < min_distance {
+                        return Some(intersect);
                     }
                 }
                 None
+                /*
+                Some(Intersect::new(
+                    ray, 
+                    (hit_point - ray.origin).length(),
+                    hit_point,
+                    ray.direction * -1.0,
+                    dvec3!(0.0, 1.0, 0.0),
+                    SurfaceCoord::new(0.0, 0.0),
+                ))
+                */
             },
             BoundingNode::Leaf{prims} => {
                 // Check triangles of all prims 
-                let min_distance = INF.x;
+                let mut min_distance = INF.x;
                 let mut ret_int: Option<Intersect> = None;
+                /*
+                let mut ret_int: Option<Intersect> =
+                Some(Intersect::new(
+                    ray, 
+                    (hit_point - ray.origin).length(),
+                    hit_point,
+                    ray.direction * -1.0,
+                    dvec3!(0.0, 1.0, 0.0),
+                    SurfaceCoord::new(0.0, 0.0),
+                ));
+                */
                 for prim in prims.iter() {
                     if let Some(intersect) = mesh.check_triangle(*prim, ray) {
                         if intersect.distance < min_distance {
+                            min_distance = intersect.distance;
                             ret_int = Some(intersect);
                         }
                     }
@@ -277,10 +304,11 @@ impl BoundingNode {
                     prim_overlap+=1;
                 }
             }
+            println!("SPlit at depth {}: {}", BoundingNode::MAX_DEPTH - depth, split);
 
             // TODO: remove
             if prim_overlap > 0 {
-                println!("primitive overlap at depth {}: {}", depth, child2_prims.len() - prims.len());
+                println!("primitive overlap at depth {}: {}", BoundingNode::MAX_DEPTH - depth, child2_prims.len() - prims.len());
             }
 
             // Create Bounding node with recursive call to create children
