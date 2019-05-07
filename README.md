@@ -2,7 +2,8 @@
 A raytracer built in rust. 
 
 # Gallery
-![A concrete monkey head hovering over a marble tile floor](https://raw.githubusercontent.com/WereDiggle/rust-raytracer/master/gallery/monkey_1.png)
+![A glass monkey head hovering in a colourful room](https://raw.githubusercontent.com/WereDiggle/rust-raytracer/master/gallery/glass_monkey.png)
+![A metallic monkey head hovering over a marble tile floor](https://raw.githubusercontent.com/WereDiggle/rust-raytracer/master/gallery/monkey_2.png)
 ![A ball and a cube in room with soft shadows](https://raw.githubusercontent.com/WereDiggle/rust-raytracer/master/gallery/light_room.png)
 ![balls in a forest](https://raw.githubusercontent.com/WereDiggle/rust-raytracer/master/gallery/many_balls.png)
 ![weird shapes in a forest](https://raw.githubusercontent.com/WereDiggle/rust-raytracer/master/gallery/many_weirds.png)
