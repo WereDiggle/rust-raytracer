@@ -36,8 +36,18 @@ fn default_material(color: Color) -> Box<PhongShader> {
 
 fn glass() -> Box<CompositeShader> {
     CompositeShader::from_shaders(vec!(
-        (0.5, ReflectionShader::new(Color::WHITE)),
-        (0.5, TranslucentShader::new(Color::WHITE, 1.517)),
+        (0.1, ReflectionShader::new(Color::WHITE)),
+        (0.9, TranslucentShader::new(Color::WHITE, 1.517)),
+    ))
+}
+
+fn frosted_glass() -> Box<ChainShader> {
+    ChainShader::from_shaders(vec!(
+        NormalMapShader::new(NormalMap::from_path("assets/images/normal_maps/concrete.jpg")),
+        CompositeShader::from_shaders(vec!(
+            (0.1, ReflectionShader::new(Color::WHITE)),
+            (0.9, TranslucentShader::new(Color::WHITE, 1.517)),
+        )),
     ))
 }
 
@@ -233,4 +243,35 @@ fn monkey_2() {
 
     let image = render(scene, image(1920, 1920), camera([-310.0, 200.0, 300.0], [0.0, 0.0, 0.0]));
     write_to_png( image, "output/monkey_2");
+}
+
+#[test]
+fn monkey_3() {
+    let scene = build_scene(
+        vec!(square_light(dvec3!(0.0, 340.0, 0.0), 200.0)),
+        no_ambient(),
+        None,
+        scene_node(
+            DMat4::identity(),
+            vec!(
+                create_room_from_material(700.0, RoomMaterialScheme {
+                    ceiling: default_material(Color::WHITE),
+                    floor: ceramic_tile(),
+                    front: concrete(Color::FIREBRICK),
+                    back: default_material(Color::CYAN),
+                    left: default_material(Color::MAGENTA),
+                    right: metallic(),
+                }),
+                geometry_node(
+                    translation(0.0, 0.0, 0.0)*scaling(150.0, 150.0, 150.0)*rotation(Axis::Y, -30.0),
+                    frosted_glass(),
+                    Mesh::from_path(&Path::new("assets/models/monkey2.obj")),
+                    vec!(),
+                ),
+            ),
+        ),
+    );
+
+    let image = render(scene, image(1920, 1920), camera([-310.0, 200.0, 300.0], [0.0, 0.0, 0.0]));
+    write_to_png( image, "output/monkey_3");
 }

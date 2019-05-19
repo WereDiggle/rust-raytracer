@@ -52,27 +52,28 @@ impl Ray {
         }
     }
 
-    pub fn transmit_through(&self, hit_point: DVec3, surface_normal: DVec3, refractive_index: f64) -> Ray {
+    // TODO: should this be in Ray or TranslucentShader?
+    pub fn transmit_through(&self, hit_point: DVec3, mut surface_normal: DVec3, mut refractive_index: f64) -> Ray {
         assert!(surface_normal.length() - 1.0 < 0.000001);
         assert!(self.depth > 0);
 
         let mut incident_cos = self.direction.dot(surface_normal);
-        let mut refractive_index = refractive_index;
 
-        let mut normal_sign = -1.0;
         if incident_cos < 0.0 {
             incident_cos = -incident_cos;
             refractive_index = 1.0/refractive_index;
-            normal_sign = 1.0; 
+        }
+        else {
+            surface_normal = surface_normal * -1.0;
         }
 
         let refraction_factor = 1.0 - refractive_index*refractive_index * (1.0 - incident_cos*incident_cos);
 
         if refraction_factor < 0.0 {
-            self.reflect_off(hit_point, surface_normal * normal_sign)
+            self.reflect_off(hit_point, surface_normal)
         }
         else {
-            let refraction_direction = refractive_index * self.direction + (refractive_index*incident_cos-refraction_factor.sqrt()) * normal_sign * surface_normal;
+            let refraction_direction = refractive_index * self.direction + (refractive_index*incident_cos-refraction_factor.sqrt()) * surface_normal;
             Ray {
                 origin: hit_point,
                 direction: refraction_direction,
